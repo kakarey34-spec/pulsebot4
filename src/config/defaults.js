@@ -7,7 +7,7 @@ module.exports = {
     logoUrl: null,
   },
   backup: {
-    channelId: null,
+    channelId: '1517946266800095232',
   },
   roles: {
     owner: '1517510292526075925',

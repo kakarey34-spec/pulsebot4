@@ -2,7 +2,8 @@ const { AttachmentBuilder } = require('discord.js');
 const store = require('../config/store');
 const v2 = require('../utils/v2');
 
-const BACKUP_FILENAME = 'pulsebot-backup.json';
+const BACKUP_FILENAME = 'pulsebot-backup.txt';
+const LEGACY_BACKUP_FILENAME = 'pulsebot-backup.json';
 const INTERVAL_MS = 10 * 60 * 1000;
 let timer = null;
 
@@ -12,6 +13,10 @@ function buildBackupAttachment() {
     name: BACKUP_FILENAME,
     description: 'Pulsebot data backup',
   });
+}
+
+function isBackupAttachment(name) {
+  return name === BACKUP_FILENAME || name === LEGACY_BACKUP_FILENAME;
 }
 
 async function sendBackup(guild) {
@@ -63,16 +68,17 @@ async function restoreFromChannel(client) {
   if (!messages?.size) return false;
 
   const backupMessage = [...messages.values()].find((msg) =>
-    msg.attachments.some((a) => a.name === BACKUP_FILENAME)
+    msg.attachments.some((a) => isBackupAttachment(a.name))
   );
   if (!backupMessage) return false;
 
-  const attachment = backupMessage.attachments.find((a) => a.name === BACKUP_FILENAME);
+  const attachment = backupMessage.attachments.find((a) => isBackupAttachment(a.name));
   if (!attachment?.url) return false;
 
   try {
     const response = await fetch(attachment.url);
-    const snapshot = await response.json();
+    const text = await response.text();
+    const snapshot = JSON.parse(text);
     const restored = store.importSnapshot(snapshot);
     if (restored) console.log(`Restored data from backup in #${channel.name} (${backupMessage.id})`);
     return restored;
