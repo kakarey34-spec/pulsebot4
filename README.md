@@ -6,7 +6,7 @@ Pulsebot4 is a Pulse Studio Discord bot using Components v2 messages, JSON file 
 
 - Components v2 ticket panel with live active counters for purchase, support, and partner tickets.
 - Purchase tickets require a product ID before the private channel opens.
-- Product listings with product ID, image URL, detailed description, and EUR price.
+- Product listings with product ID, uploaded image/video or media URL, detailed description, and EUR price.
 - Discount-only promocodes.
 - PayPal instructions with configurable email.
 - PaySafe instructions with automatic round-up to the nearest card tier: EUR 5, 10, 25, 50, or 100.
@@ -92,7 +92,7 @@ Run these in Discord:
 /ticket panel channel:#your-ticket-panel-channel
 /payment paypal email:your-paypal@email.com
 /payment paysafe instructions:Buy the shown PaySafe tier and send the code/proof here.
-/product add name:Example Product price:10 description:Detailed product info id:PULSE-001 image_url:https://example.com/image.png channel:#shop
+/product add name:Example Product price:10 description:Detailed product info id:PULSE-001 media:@uploaded-image-or-video channel:#shop
 /promo create code:PULSE20 discount:20 channel:#promocodes
 ```
 

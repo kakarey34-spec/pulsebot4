@@ -7,6 +7,8 @@ const {
   TextInputStyle,
   ActionRowBuilder,
 } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
 const store = require('../config/store');
 const v2 = require('../utils/v2');
 const { sendLog } = require('../utils/logs');
@@ -24,12 +26,16 @@ const PROMO_MODAL_PREFIX = 'promo_modal:';
 const PROMO_BUTTON_PREFIX = 'promo_button:';
 
 const locks = new Set();
+const LOGO_PATH = path.join(__dirname, '../../assets/pulse-studios-logo.webp');
+const LOGO_NAME = 'pulse-studios-logo.webp';
 
-function ticketPanelPayload(guildId) {
+function ticketPanelPayload(guildId, logoUrl = null) {
   const config = store.getGuild(guildId);
   const counts = store.ticketCounts(guildId);
+  const resolvedLogo = logoUrl || config.brand.logoUrl;
   return v2.message(
     v2.container([
+      resolvedLogo ? v2.media(resolvedLogo, 'Pulse Studios logo') : null,
       v2.text('## Pulse Studio Ticket Panel'),
       v2.text(
         [
@@ -64,10 +70,20 @@ async function refreshPanel(guild) {
 }
 
 async function postPanel(channel) {
-  const sent = await channel.send(ticketPanelPayload(channel.guild.id));
+  const hasLogo = fs.existsSync(LOGO_PATH);
+  const logoUrl = hasLogo ? `attachment://${LOGO_NAME}` : null;
+  const sent = await channel.send({
+    ...ticketPanelPayload(channel.guild.id, logoUrl),
+    files: hasLogo ? [{ attachment: LOGO_PATH, name: LOGO_NAME }] : [],
+  });
+  const uploadedLogoUrl = sent.attachments.first()?.url || store.getGuild(channel.guild.id).brand.logoUrl || null;
   store.setGuild(channel.guild.id, {
+    brand: { logoUrl: uploadedLogoUrl },
     tickets: { panelChannelId: channel.id, panelMessageId: sent.id },
   });
+  if (uploadedLogoUrl) {
+    await sent.edit(ticketPanelPayload(channel.guild.id, uploadedLogoUrl)).catch(() => null);
+  }
   return sent;
 }
 
@@ -133,8 +149,8 @@ function ticketIntroPayload(guildId, ticket, product = null) {
   const type = TYPES[ticket.type];
   const lines = [
     `## ${type.emoji} ${type.label}`,
+    `User: <@${ticket.userId}>`,
     `Ticket ID: **${ticket.ticketId}**`,
-    `Opened by: <@${ticket.userId}>`,
   ];
 
   if (product) {
@@ -245,10 +261,7 @@ async function createTicketFromModal(interaction) {
     };
     store.setTicket(channel.id, ticket);
 
-    await channel.send({
-      content: `<@${interaction.user.id}>`,
-      ...ticketIntroPayload(interaction.guild.id, ticket, product),
-    });
+    await channel.send(ticketIntroPayload(interaction.guild.id, ticket, product));
     await refreshPanel(interaction.guild);
     await sendLog(interaction.guild, 'ticketLogs', 'Ticket Opened', [
       `Type: **${TYPES[type].label}**`,

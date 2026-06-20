@@ -4,6 +4,7 @@ module.exports = {
     footer: 'Pulse Studio Made By LyxosDime',
     color: 0x9b5cff,
     accentColor: 0x00d4ff,
+    logoUrl: null,
   },
   roles: {
     owner: '1517510292526075925',
