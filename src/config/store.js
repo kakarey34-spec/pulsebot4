@@ -187,8 +187,12 @@ class JsonStore {
   }
 
   listActiveGiveaways() {
+    return Object.values(this.giveaways).filter((g) => g.status === 'active');
+  }
+
+  listDueGiveaways() {
     const now = Date.now();
-    return Object.values(this.giveaways).filter((g) => g.status === 'active' && g.endsAt > now);
+    return this.listActiveGiveaways().filter((g) => g.endsAt <= now);
   }
 
   pushSecurityAction(guildId, key, actorId) {

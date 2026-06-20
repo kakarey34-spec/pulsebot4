@@ -9,8 +9,8 @@ function separator(spacing = 1) {
   return { type: 14, spacing };
 }
 
-function button(custom_id, label, style = 2, emoji) {
-  const payload = { type: 2, custom_id, label: String(label).slice(0, 80), style };
+function button(custom_id, label, style = 2, emoji, disabled = false) {
+  const payload = { type: 2, custom_id, label: String(label).slice(0, 80), style, disabled };
   if (emoji) payload.emoji = { name: emoji };
   return payload;
 }

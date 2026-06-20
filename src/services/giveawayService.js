@@ -11,22 +11,29 @@ function isEnterButton(customId) {
 function payload(guildId, giveaway) {
   const config = store.getGuild(guildId);
   const entries = giveaway.entries?.length || 0;
-  return v2.message(
-    v2.container([
-      v2.text(
-        [
-          `## ${giveaway.title}`,
-          `Prize: **${giveaway.prize}**`,
-          `Winners: **${giveaway.winnerCount}**`,
-          `Entries: **${entries}**`,
-          `Ends: <t:${Math.floor(giveaway.endsAt / 1000)}:R>`,
-          giveaway.description ? `\n${giveaway.description}` : '',
-        ].filter(Boolean).join('\n')
-      ),
-      v2.separator(),
-      v2.row(v2.button(`${ENTER_PREFIX}${giveaway.messageId}`, 'Enter Giveaway', 1, '🎉')),
-    ], config.brand.color)
-  );
+  const ended = giveaway.status === 'ended';
+  const winners = giveaway.winnerIds || [];
+  const lines = [
+    `## ${giveaway.title}${ended ? ' (Ended)' : ''}`,
+    `Prize: **${giveaway.prize}**`,
+    `Winners: **${giveaway.winnerCount}**`,
+    `Entries: **${entries}**`,
+    ended
+      ? winners.length
+        ? `Winner(s): ${winners.map((id) => `<@${id}>`).join(', ')}`
+        : 'No valid entries.'
+      : `Ends: <t:${Math.floor(giveaway.endsAt / 1000)}:R>`,
+    giveaway.description ? `\n${giveaway.description}` : '',
+  ];
+  const components = [v2.text(lines.filter(Boolean).join('\n')), v2.separator()];
+  if (!ended) {
+    components.push(v2.row(v2.button(`${ENTER_PREFIX}${giveaway.messageId}`, 'Enter Giveaway', 1, '🎉')));
+  } else {
+    components.push(v2.row(v2.button(`${ENTER_PREFIX}${giveaway.messageId}`, 'Giveaway Ended', 2, '🎉', true)));
+  }
+  return v2.message(v2.container(components, config.brand.color), {
+    allowedMentions: ended ? { users: winners } : { parse: [] },
+  });
 }
 
 async function startGiveaway(interaction, options) {
@@ -91,7 +98,9 @@ async function endGiveaway(client, messageId, forced = false) {
   if (message) await message.edit(payload(giveaway.guildId, giveaway)).catch(() => null);
   await channel.send({
     content: winners.length
-      ? `Giveaway ended${forced ? ' early' : ''}! Winner(s): ${winners.map((id) => `<@${id}>`).join(', ')}`
+      ? winners.length === 1
+        ? `🎉 Congratulations <@${winners[0]}>, you won **${giveaway.prize}**!`
+        : `🎉 Giveaway ended${forced ? ' early' : ''}! Winners: ${winners.map((id) => `<@${id}>`).join(', ')} — you won **${giveaway.prize}**!`
       : `Giveaway ended${forced ? ' early' : ''}. No valid entries.`,
     allowedMentions: { users: winners },
   });
@@ -116,13 +125,18 @@ async function rerollGiveaway(client, messageId, replacedUserId) {
   return { newWinner: winners[0], replaced: replacedUserId };
 }
 
+async function processDueGiveaways(client) {
+  for (const giveaway of store.listDueGiveaways()) {
+    await endGiveaway(client, giveaway.messageId).catch((error) =>
+      console.warn('Giveaway end failed:', error.message)
+    );
+  }
+}
+
 function startScheduler(client) {
-  setInterval(async () => {
-    for (const giveaway of store.listActiveGiveaways()) {
-      if (giveaway.endsAt <= Date.now()) {
-        await endGiveaway(client, giveaway.messageId).catch((error) => console.warn('Giveaway end failed:', error.message));
-      }
-    }
+  processDueGiveaways(client).catch((error) => console.warn('Giveaway startup check failed:', error.message));
+  setInterval(() => {
+    processDueGiveaways(client).catch((error) => console.warn('Giveaway scheduler failed:', error.message));
   }, 30_000).unref();
 }
 
