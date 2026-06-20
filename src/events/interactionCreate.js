@@ -41,7 +41,7 @@ module.exports = {
           await interaction.deferReply({ ephemeral: true });
           const result = await ticketManager.createTicketFromModal(interaction);
           return interaction.editReply({
-            content: result.error || `Ticket opened: ${result.channel}`,
+            content: result.error || `Ticket opened: <#${result.channel.id}>`,
           });
         }
 

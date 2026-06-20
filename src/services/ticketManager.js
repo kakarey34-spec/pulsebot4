@@ -154,7 +154,7 @@ function ticketIntroPayload(guildId, ticket, product = null) {
   ];
 
   if (product) {
-    lines.push('', `**Product**: ${product.name}`, `**Product ID**: \`${product.id}\``, `**Price**: €${product.price.toFixed(2)}`);
+    lines.push('', `**Product**: ${product.name}`, `**Product ID**: \`${product.id}\``, `**Price**: €${Number(product.price || 0).toFixed(2)}`);
     if (product.description) lines.push('', product.description);
   }
 
@@ -176,12 +176,18 @@ function ticketIntroPayload(guildId, ticket, product = null) {
   );
 }
 
-function collectOverwrites(guild, member, config) {
+function modalTextValue(fields, customId) {
+  if (!fields.fields.has(customId)) return '';
+  return fields.getTextInputValue(customId).trim();
+}
+
+function collectOverwrites(guild, userId, config) {
   const staffRoles = [config.roles.owner, config.roles.mod, config.roles.seller].filter(Boolean);
+  const botId = guild.client.user.id;
   const overwrites = [
     { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
     {
-      id: member.id,
+      id: userId,
       allow: [
         PermissionFlagsBits.ViewChannel,
         PermissionFlagsBits.SendMessages,
@@ -190,7 +196,7 @@ function collectOverwrites(guild, member, config) {
       ],
     },
     {
-      id: guild.members.me.id,
+      id: botId,
       allow: [
         PermissionFlagsBits.ViewChannel,
         PermissionFlagsBits.SendMessages,
@@ -200,6 +206,7 @@ function collectOverwrites(guild, member, config) {
     },
   ];
   for (const roleId of staffRoles) {
+    if (!guild.roles.cache.has(roleId)) continue;
     overwrites.push({
       id: roleId,
       allow: [
@@ -212,6 +219,20 @@ function collectOverwrites(guild, member, config) {
     });
   }
   return overwrites;
+}
+
+async function resolveTicketParent(guild, categoryId) {
+  if (!categoryId) return undefined;
+  const parent = await guild.channels.fetch(categoryId).catch(() => null);
+  return parent?.type === ChannelType.GuildCategory ? parent.id : undefined;
+}
+
+function ticketCreateError(error) {
+  const code = error?.code ?? error?.rawError?.code;
+  if (code === 50013) return 'I do not have permission to create ticket channels. Check bot permissions and role position.';
+  if (code === 50035) return 'Ticket setup is invalid. Run `/ticket category` again with a valid category.';
+  if (code === 30013) return 'This server has reached the maximum number of channels.';
+  return 'Could not open your ticket. Ask staff to check bot permissions and `/ticket category`.';
 }
 
 async function createTicketFromModal(interaction) {
@@ -228,23 +249,30 @@ async function createTicketFromModal(interaction) {
 
     const config = store.getGuild(interaction.guild.id);
     const productId = type === 'purchase'
-      ? interaction.fields.getTextInputValue('product_id').trim().toUpperCase()
+      ? modalTextValue(interaction.fields, 'product_id').toUpperCase()
       : null;
     const product = productId ? store.getProduct(interaction.guild.id, productId) : null;
     if (type === 'purchase' && !product) {
       return { error: `I could not find a product with ID \`${productId}\`. Check the shop listing and try again.` };
     }
 
-    const details = interaction.fields.getTextInputValue('details')?.trim() || '';
+    const details = modalTextValue(interaction.fields, 'details');
     const number = store.nextTicketNumber(interaction.guild.id, type);
     const ticketId = `${type.toUpperCase()}-${String(number).padStart(4, '0')}`;
-    const channel = await interaction.guild.channels.create({
-      name: `${type}-${slug(interaction.user.username)}-${number}`,
-      type: ChannelType.GuildText,
-      parent: config.tickets.categoryId || undefined,
-      topic: `Pulse Studio ${type} ticket ${ticketId} | ${interaction.user.tag} (${interaction.user.id})`,
-      permissionOverwrites: collectOverwrites(interaction.guild, interaction.member, config),
-    });
+    const parent = await resolveTicketParent(interaction.guild, config.tickets.categoryId);
+    let channel;
+    try {
+      channel = await interaction.guild.channels.create({
+        name: `${type}-${slug(interaction.user.username)}-${number}`,
+        type: ChannelType.GuildText,
+        parent,
+        topic: `Pulse Studio ${type} ticket ${ticketId} | ${interaction.user.tag} (${interaction.user.id})`,
+        permissionOverwrites: collectOverwrites(interaction.guild, interaction.user.id, config),
+      });
+    } catch (error) {
+      console.error('Ticket channel create failed:', error);
+      return { error: ticketCreateError(error) };
+    }
 
     const ticket = {
       guildId: interaction.guild.id,
@@ -261,7 +289,14 @@ async function createTicketFromModal(interaction) {
     };
     store.setTicket(channel.id, ticket);
 
-    await channel.send(ticketIntroPayload(interaction.guild.id, ticket, product));
+    try {
+      await channel.send(ticketIntroPayload(interaction.guild.id, ticket, product));
+    } catch (error) {
+      console.error('Ticket intro send failed:', error);
+      store.deleteTicket(channel.id);
+      await channel.delete('Pulse Studio ticket intro failed').catch(() => null);
+      return { error: 'The ticket channel was created but the welcome message failed. Try again or ask staff for help.' };
+    }
     await refreshPanel(interaction.guild);
     await sendLog(interaction.guild, 'ticketLogs', 'Ticket Opened', [
       `Type: **${TYPES[type].label}**`,
