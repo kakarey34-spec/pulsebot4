@@ -9,8 +9,7 @@ function buildRulesEmbed(guildId) {
     .setColor(config.brand.color)
     .setTitle(rules.title)
     .setDescription(rules.description)
-    .addFields(rules.fields)
-    .setFooter({ text: config.brand.footer });
+    .addFields(rules.fields);
 }
 
 module.exports = {

@@ -16,7 +16,7 @@ async function sendLog(guild, channelKey, title, lines = []) {
           v2.text(`### ${title}`),
           v2.separator(),
           v2.text(lines.filter(Boolean).join('\n') || '_No details_'),
-          v2.text(`-# <t:${Math.floor(Date.now() / 1000)}:F> | ${config.brand.footer}`),
+          v2.text(`-# <t:${Math.floor(Date.now() / 1000)}:F>`),
         ], config.brand.color)
       )
     )
@@ -40,8 +40,7 @@ async function sendTicketTranscript(guild, lines = [], txtContent, txtFilename) 
         `📎 Full conversation attached: \`${txtFilename}\``,
       ].join('\n')
     )
-    .setTimestamp()
-    .setFooter({ text: config.brand.footer });
+    .setTimestamp();
 
   return channel
     .send({

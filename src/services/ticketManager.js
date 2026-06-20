@@ -54,7 +54,7 @@ function ticketPanelPayload(guildId, logoUrl = null) {
         v2.button(`${TICKET_OPEN_PREFIX}support`, 'Support Tickets', 2, '🛠️'),
         v2.button(`${TICKET_OPEN_PREFIX}partner`, 'Partner Tickets', 2, '🤝')
       ),
-      v2.text(`-# ${config.brand.footer}`),
+      v2.text('-# Pulse Studio Made By LyxosDime'),
     ], config.brand.color)
   );
 }
@@ -170,7 +170,6 @@ function ticketIntroPayload(guildId, ticket, product = null) {
           : 'Staff will be with you shortly. Keep all details in this channel so the transcript is complete.'
       ),
       ticket.type === 'purchase' ? paymentRows(ticket.channelId) : closeRow(),
-      v2.text(`-# ${config.brand.footer}`),
     ], config.brand.color),
     { allowedMentions: { users: [ticket.userId], roles: [] } }
   );

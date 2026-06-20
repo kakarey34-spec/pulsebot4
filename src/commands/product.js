@@ -14,7 +14,6 @@ function productPayload(guildId, product) {
       v2.separator(),
       v2.text(product.description || '_No description provided._'),
       v2.text('Open a **Purchase Ticket** and enter this product ID first.'),
-      v2.text(`-# ${config.brand.footer}`),
     ], config.brand.color)
   );
 }

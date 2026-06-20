@@ -1,7 +1,7 @@
 module.exports = {
   brand: {
     name: 'Pulse Studio',
-    footer: 'Pulse Studio Made By LyxosDime',
+    footer: 'Pulse Studio',
     color: 0x00aeef,
     accentColor: 0xc0c0c0,
     logoUrl: null,

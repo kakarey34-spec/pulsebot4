@@ -17,7 +17,7 @@ function promoPayload(guildId, promo) {
   if (promo.maxUses) lines.push(`Uses: **${promo.uses || 0}/${promo.maxUses}**`);
   if (promo.expiresAt) lines.push(`Expires: <t:${Math.floor(promo.expiresAt / 1000)}:R>`);
   lines.push('', 'Use this code inside a purchase ticket before selecting your payment method.');
-  return v2.message(v2.container([v2.text(lines.join('\n')), v2.text(`-# ${config.brand.footer}`)], config.brand.color));
+  return v2.message(v2.container([v2.text(lines.join('\n'))], config.brand.color));
 }
 
 module.exports = {

@@ -25,7 +25,6 @@ function payload(guildId, giveaway) {
       ),
       v2.separator(),
       v2.row(v2.button(`${ENTER_PREFIX}${giveaway.messageId}`, 'Enter Giveaway', 1, '🎉')),
-      v2.text(`-# ${config.brand.footer}`),
     ], config.brand.color)
   );
 }
