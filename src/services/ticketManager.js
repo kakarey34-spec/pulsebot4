@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const store = require('../config/store');
 const v2 = require('../utils/v2');
-const { sendLog } = require('../utils/logs');
+const { sendTicketLog } = require('../utils/logs');
 
 const TYPES = {
   purchase: { label: 'Purchase Ticket', emoji: '🛒' },
@@ -35,8 +35,8 @@ function ticketPanelPayload(guildId, logoUrl = null) {
   const resolvedLogo = logoUrl || config.brand.logoUrl;
   return v2.message(
     v2.container([
-      resolvedLogo ? v2.media(resolvedLogo, 'Pulse Studios logo') : null,
-      v2.text('## PULSE STUDIOS Ticket Panel'),
+      resolvedLogo ? v2.media(resolvedLogo, 'Pulse Studio logo') : null,
+      v2.text('## PULSE STUDIO Ticket Panel'),
       v2.text(
         [
           'Open the ticket type that matches what you need.',
@@ -298,12 +298,30 @@ async function createTicketFromModal(interaction) {
       return { error: 'The ticket channel was created but the welcome message failed. Try again or ask staff for help.' };
     }
     await refreshPanel(interaction.guild);
-    await sendLog(interaction.guild, 'ticketLogs', 'Ticket Opened', [
-      `Type: **${TYPES[type].label}**`,
-      `Ticket: <#${channel.id}>`,
-      `User: <@${interaction.user.id}>`,
-      product ? `Product: **${product.name}** (\`${product.id}\`)` : null,
-    ]);
+
+    const openTxt = [
+      '=== TICKET OPENED ===',
+      `Ticket ID: ${ticketId}`,
+      `Type: ${TYPES[type].label}`,
+      `User: ${interaction.user.tag} (${interaction.user.id})`,
+      `Channel: ${channel.name} (${channel.id})`,
+      product ? `Product: ${product.name} (${product.id})` : null,
+      ticket.details ? `Details: ${ticket.details}` : null,
+      `Opened: ${new Date().toISOString()}`,
+    ].filter(Boolean).join('\n');
+
+    await sendTicketLog(
+      interaction.guild,
+      'Ticket Opened',
+      [
+        `Type: **${TYPES[type].label}**`,
+        `Ticket: <#${channel.id}>`,
+        `User: <@${interaction.user.id}>`,
+        product ? `Product: **${product.name}** (\`${product.id}\`)` : null,
+      ],
+      openTxt,
+      `${channel.name}-opened.txt`
+    );
     return { channel };
   } finally {
     locks.delete(lockKey);
@@ -414,44 +432,42 @@ async function closeTicket(channel, closedBy) {
   const transcript = await buildTranscript(channel);
   const config = store.getGuild(channel.guild.id);
   const type = TYPES[ticket.type];
-  const logChannel = await channel.guild.channels.fetch(config.tickets.transcriptChannelId || config.channels.ticketLogs).catch(() => null);
-  if (logChannel?.isTextBased()) {
-    await logChannel.send({
-      ...v2.message(
-        v2.container(
-          [
-            v2.text('## Ticket Transcript'),
-            v2.text(
-              [
-                `**Ticket:** ${ticket.ticketId}`,
-                `**Type:** ${type.emoji} ${type.label}`,
-                `**User:** <@${ticket.userId}>`,
-                `**Closed by:** <@${closedBy.id}>`,
-                `**Messages:** ${transcript.count}`,
-                `**Channel:** #${channel.name}`,
-              ].join('\n')
-            ),
-            v2.separator(),
-            v2.text('-# Full conversation attached as `.txt` file below.'),
-            v2.text(`-# ${config.brand.footer}`),
-          ],
-          config.brand.color
-        )
-      ),
-      files: [transcript.attachment],
-    }).catch(() => null);
-  }
-  await sendLog(channel.guild, 'ticketLogs', 'Ticket Closed', [
-    `Ticket: **${ticket.ticketId}**`,
-    `Channel: #${channel.name}`,
-    `Closed by: <@${closedBy.id}>`,
-    `Messages: **${transcript.count}**`,
-  ]);
+
+  const closeTxt = [
+    '=== TICKET CLOSED ===',
+    `Ticket ID: ${ticket.ticketId}`,
+    `Type: ${type.label}`,
+    `User ID: ${ticket.userId}`,
+    `Closed by: ${closedBy.tag} (${closedBy.id})`,
+    `Channel: ${channel.name} (${channel.id})`,
+    `Messages: ${transcript.count}`,
+    `Closed: ${new Date().toISOString()}`,
+    '',
+    '=== CONVERSATION ===',
+    '',
+    transcript.body,
+  ].join('\n');
+
+  await sendTicketLog(
+    channel.guild,
+    'Ticket Closed',
+    [
+      `Ticket: **${ticket.ticketId}**`,
+      `Type: ${type.emoji} ${type.label}`,
+      `User: <@${ticket.userId}>`,
+      `Closed by: <@${closedBy.id}>`,
+      `Messages: **${transcript.count}**`,
+      `Channel: #${channel.name}`,
+    ],
+    closeTxt,
+    `${channel.name}-${channel.id}-transcript.txt`
+  );
+
   await refreshPanel(channel.guild);
   await channel.send(v2.message(v2.container([v2.text('## Ticket Closed\nTranscript saved. This channel will be removed shortly.')], config.brand.color)));
-  setTimeout(() => {
+  setTimeout(async () => {
+    await channel.delete('Pulse Studio ticket closed').catch(() => null);
     store.deleteTicket(channel.id);
-    channel.delete('Pulse Studio ticket closed').catch(() => null);
   }, 5000);
   return { ok: true };
 }
@@ -476,7 +492,7 @@ async function buildTranscript(channel) {
   const attachment = new AttachmentBuilder(Buffer.from(body || '[no messages]', 'utf8'), {
     name: `${channel.name}-${channel.id}-transcript.txt`,
   });
-  return { attachment, count: ordered.length };
+  return { attachment, body: body || '[no messages]', count: ordered.length };
 }
 
 module.exports = {

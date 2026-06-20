@@ -8,7 +8,7 @@ module.exports = {
   async execute(client) {
     console.log(`Logged in as ${client.user.tag}`);
     client.user.setPresence({
-      activities: [{ name: 'Pulse Studios Made By LyxosDime', type: ActivityType.Watching }],
+      activities: [{ name: 'Pulse Studio Made By LyxosDime', type: ActivityType.Watching }],
       status: 'online',
     });
     await client.slashHandler.deployCommands();

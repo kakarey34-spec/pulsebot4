@@ -25,7 +25,7 @@ function row(...components) {
   return { type: 1, components: components.flat().slice(0, 5) };
 }
 
-function media(url, description = 'Pulse Studios image') {
+function media(url, description = 'Pulse Studio image') {
   if (!url) return null;
   return { type: 12, items: [{ media: { url }, description }] };
 }

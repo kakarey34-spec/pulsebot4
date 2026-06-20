@@ -10,7 +10,7 @@ function buildBackupBody(snapshot) {
   const exported = new Date(snapshot.exportedAt).toISOString();
   const json = JSON.stringify(snapshot, null, 2);
   return [
-    '=== PULSE STUDIOS BACKUP ===',
+    '=== PULSE STUDIO BACKUP ===',
     `Exported: ${exported}`,
     '',
     'Copy everything below this line to restore data:',
@@ -54,7 +54,7 @@ async function sendBackup(guild) {
 
   const { snapshot, attachment } = buildBackupAttachment();
   return channel.send({
-    content: `**Pulse Studios Backup** — <t:${Math.floor(snapshot.exportedAt / 1000)}:F>\nDownload \`${BACKUP_FILENAME}\` below and open it to copy the backup data.`,
+    content: `**Pulse Studio Backup** — <t:${Math.floor(snapshot.exportedAt / 1000)}:F>\nDownload \`${BACKUP_FILENAME}\` below and open it to copy the backup data.`,
     files: [attachment],
   });
 }

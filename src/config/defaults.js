@@ -1,7 +1,7 @@
 module.exports = {
   brand: {
-    name: 'Pulse Studios',
-    footer: 'Pulse Studios Made By LyxosDime',
+    name: 'Pulse Studio',
+    footer: 'Pulse Studio Made By LyxosDime',
     color: 0x00aeef,
     accentColor: 0xc0c0c0,
     logoUrl: null,
@@ -61,5 +61,6 @@ module.exports = {
   antiNuke: {
     enabled: true,
     maxActionsPerMinute: 6,
+    ignoredUserIds: [],
   },
 };

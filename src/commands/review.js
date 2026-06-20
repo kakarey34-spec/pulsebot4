@@ -14,7 +14,7 @@ function reviewFooterDate() {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('review')
-    .setDescription('Leave a Pulse Studios review')
+    .setDescription('Leave a Pulse Studio review')
     .addIntegerOption((opt) => opt.setName('stars').setDescription('1 to 5 stars').setRequired(true).setMinValue(1).setMaxValue(5))
     .addStringOption((opt) => opt.setName('message').setDescription('Your review').setRequired(true).setMaxLength(1000)),
   async execute(interaction) {
