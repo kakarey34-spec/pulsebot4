@@ -25,12 +25,12 @@ function row(...components) {
   return { type: 1, components: components.flat().slice(0, 5) };
 }
 
-function media(url, description = 'Pulse Studio image') {
+function media(url, description = 'Pulse Studios image') {
   if (!url) return null;
   return { type: 12, items: [{ media: { url }, description }] };
 }
 
-function container(components, accentColor = 0x9b5cff) {
+function container(components, accentColor = 0x00aeef) {
   return {
     type: 17,
     accent_color: accentColor,

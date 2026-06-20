@@ -10,7 +10,7 @@ module.exports = {
     .addSubcommand((sub) =>
       sub
         .setName('panel')
-        .setDescription('Post or refresh the Components v2 ticket panel')
+        .setDescription('Post the ticket panel')
         .addChannelOption((opt) => opt.setName('channel').setDescription('Panel channel').addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement))
     )
     .addSubcommand((sub) =>

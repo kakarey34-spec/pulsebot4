@@ -26,8 +26,8 @@ const PROMO_MODAL_PREFIX = 'promo_modal:';
 const PROMO_BUTTON_PREFIX = 'promo_button:';
 
 const locks = new Set();
-const LOGO_PATH = path.join(__dirname, '../../assets/pulse-studios-logo.webp');
-const LOGO_NAME = 'pulse-studios-logo.webp';
+const LOGO_PATH = path.join(__dirname, '../../assets/pulse-studios-logo.png');
+const LOGO_NAME = 'pulse-studios-logo.png';
 
 function ticketPanelPayload(guildId, logoUrl = null) {
   const config = store.getGuild(guildId);
@@ -36,7 +36,7 @@ function ticketPanelPayload(guildId, logoUrl = null) {
   return v2.message(
     v2.container([
       resolvedLogo ? v2.media(resolvedLogo, 'Pulse Studios logo') : null,
-      v2.text('## Pulse Studio Ticket Panel'),
+      v2.text('## PULSE STUDIOS Ticket Panel'),
       v2.text(
         [
           'Open the ticket type that matches what you need.',
@@ -413,10 +413,31 @@ async function closeTicket(channel, closedBy) {
 
   const transcript = await buildTranscript(channel);
   const config = store.getGuild(channel.guild.id);
+  const type = TYPES[ticket.type];
   const logChannel = await channel.guild.channels.fetch(config.tickets.transcriptChannelId || config.channels.ticketLogs).catch(() => null);
   if (logChannel?.isTextBased()) {
     await logChannel.send({
-      content: `Transcript for **${ticket.ticketId}** closed by <@${closedBy.id}>`,
+      ...v2.message(
+        v2.container(
+          [
+            v2.text('## Ticket Transcript'),
+            v2.text(
+              [
+                `**Ticket:** ${ticket.ticketId}`,
+                `**Type:** ${type.emoji} ${type.label}`,
+                `**User:** <@${ticket.userId}>`,
+                `**Closed by:** <@${closedBy.id}>`,
+                `**Messages:** ${transcript.count}`,
+                `**Channel:** #${channel.name}`,
+              ].join('\n')
+            ),
+            v2.separator(),
+            v2.text('-# Full conversation attached as `.txt` file below.'),
+            v2.text(`-# ${config.brand.footer}`),
+          ],
+          config.brand.color
+        )
+      ),
       files: [transcript.attachment],
     }).catch(() => null);
   }

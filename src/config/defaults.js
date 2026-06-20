@@ -1,10 +1,13 @@
 module.exports = {
   brand: {
-    name: 'Pulse Studio',
-    footer: 'Pulse Studio Made By LyxosDime',
-    color: 0x9b5cff,
-    accentColor: 0x00d4ff,
+    name: 'Pulse Studios',
+    footer: 'Pulse Studios Made By LyxosDime',
+    color: 0x00aeef,
+    accentColor: 0xc0c0c0,
     logoUrl: null,
+  },
+  backup: {
+    channelId: null,
   },
   roles: {
     owner: '1517510292526075925',

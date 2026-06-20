@@ -200,6 +200,53 @@ class JsonStore {
     writeJson(FILES.security, this.security);
     return actions.length;
   }
+
+  exportSnapshot() {
+    return {
+      version: 1,
+      exportedAt: Date.now(),
+      config: clone(this.config),
+      tickets: clone(this.tickets),
+      products: clone(this.products),
+      promos: clone(this.promos),
+      giveaways: clone(this.giveaways),
+      counters: clone(this.counters),
+      security: clone(this.security),
+    };
+  }
+
+  importSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return false;
+    if (snapshot.config) {
+      this.config = clone(snapshot.config);
+      writeJson(FILES.config, this.config);
+    }
+    if (snapshot.tickets) {
+      this.tickets = clone(snapshot.tickets);
+      writeJson(FILES.tickets, this.tickets);
+    }
+    if (snapshot.products) {
+      this.products = clone(snapshot.products);
+      writeJson(FILES.products, this.products);
+    }
+    if (snapshot.promos) {
+      this.promos = clone(snapshot.promos);
+      writeJson(FILES.promos, this.promos);
+    }
+    if (snapshot.giveaways) {
+      this.giveaways = clone(snapshot.giveaways);
+      writeJson(FILES.giveaways, this.giveaways);
+    }
+    if (snapshot.counters) {
+      this.counters = clone(snapshot.counters);
+      writeJson(FILES.counters, this.counters);
+    }
+    if (snapshot.security) {
+      this.security = clone(snapshot.security);
+      writeJson(FILES.security, this.security);
+    }
+    return true;
+  }
 }
 
 module.exports = new JsonStore();

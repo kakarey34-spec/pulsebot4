@@ -6,7 +6,12 @@ const { sendLog } = require('../utils/logs');
 
 const ENABLED_COMMANDS = new Set([
   'admin',
+  'antilink',
+  'backup',
+  'ban',
+  'clear',
   'giveaway',
+  'kick',
   'payment',
   'product',
   'promo',
