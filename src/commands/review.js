@@ -15,13 +15,16 @@ module.exports = {
     }
     const stars = interaction.options.getInteger('stars');
     const body = interaction.options.getString('message');
+    const avatarUrl = interaction.user.displayAvatarURL({ extension: 'png', size: 256 });
+    const starLine = `${'⭐'.repeat(stars)}${'☆'.repeat(5 - stars)} **${stars}/5**`;
     await interaction.channel.send(
       v2.message(
         v2.container([
-          v2.text(`## Pulse Studio Review\n${'★'.repeat(stars)}${'☆'.repeat(5 - stars)} **${stars}/5**`),
+          v2.media(avatarUrl, `${interaction.user.username}'s avatar`),
+          v2.text(`## Pulse Studios Review\n${starLine}`),
           v2.separator(),
           v2.text(`> ${body.replace(/\n/g, '\n> ')}`),
-          v2.text(`By <@${interaction.user.id}> | ${config.brand.footer}`),
+          v2.text(`**${interaction.user.username}** | ${config.brand.footer}`),
         ], config.brand.color),
         { allowedMentions: { users: [interaction.user.id] } }
       )
