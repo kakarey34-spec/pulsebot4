@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const store = require('../config/store');
 const v2 = require('../utils/v2');
-const { sendTicketLog } = require('../utils/logs');
+const { sendLog, sendTicketTranscript } = require('../utils/logs');
 
 const TYPES = {
   purchase: { label: 'Purchase Ticket', emoji: '🛒' },
@@ -298,30 +298,12 @@ async function createTicketFromModal(interaction) {
       return { error: 'The ticket channel was created but the welcome message failed. Try again or ask staff for help.' };
     }
     await refreshPanel(interaction.guild);
-
-    const openTxt = [
-      '=== TICKET OPENED ===',
-      `Ticket ID: ${ticketId}`,
-      `Type: ${TYPES[type].label}`,
-      `User: ${interaction.user.tag} (${interaction.user.id})`,
-      `Channel: ${channel.name} (${channel.id})`,
-      product ? `Product: ${product.name} (${product.id})` : null,
-      ticket.details ? `Details: ${ticket.details}` : null,
-      `Opened: ${new Date().toISOString()}`,
-    ].filter(Boolean).join('\n');
-
-    await sendTicketLog(
-      interaction.guild,
-      'Ticket Opened',
-      [
-        `Type: **${TYPES[type].label}**`,
-        `Ticket: <#${channel.id}>`,
-        `User: <@${interaction.user.id}>`,
-        product ? `Product: **${product.name}** (\`${product.id}\`)` : null,
-      ],
-      openTxt,
-      `${channel.name}-opened.txt`
-    );
+    await sendLog(interaction.guild, 'ticketLogs', 'Ticket Opened', [
+      `Type: **${TYPES[type].label}**`,
+      `Ticket: <#${channel.id}>`,
+      `User: <@${interaction.user.id}>`,
+      product ? `Product: **${product.name}** (\`${product.id}\`)` : null,
+    ]);
     return { channel };
   } finally {
     locks.delete(lockKey);
@@ -434,7 +416,6 @@ async function closeTicket(channel, closedBy) {
   const type = TYPES[ticket.type];
 
   const closeTxt = [
-    '=== TICKET CLOSED ===',
     `Ticket ID: ${ticket.ticketId}`,
     `Type: ${type.label}`,
     `User ID: ${ticket.userId}`,
@@ -448,19 +429,19 @@ async function closeTicket(channel, closedBy) {
     transcript.body,
   ].join('\n');
 
-  await sendTicketLog(
+  const txtFilename = `${channel.name}-${channel.id}-transcript.txt`;
+  await sendTicketTranscript(
     channel.guild,
-    'Ticket Closed',
     [
-      `Ticket: **${ticket.ticketId}**`,
-      `Type: ${type.emoji} ${type.label}`,
-      `User: <@${ticket.userId}>`,
-      `Closed by: <@${closedBy.id}>`,
-      `Messages: **${transcript.count}**`,
-      `Channel: #${channel.name}`,
+      `**Ticket:** ${ticket.ticketId}`,
+      `**Type:** ${type.emoji} ${type.label}`,
+      `**User:** <@${ticket.userId}>`,
+      `**Closed by:** <@${closedBy.id}>`,
+      `**Messages:** ${transcript.count}`,
+      `**Channel:** #${channel.name}`,
     ],
     closeTxt,
-    `${channel.name}-${channel.id}-transcript.txt`
+    txtFilename
   );
 
   await refreshPanel(channel.guild);

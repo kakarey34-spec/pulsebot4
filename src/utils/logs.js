@@ -23,7 +23,7 @@ async function sendLog(guild, channelKey, title, lines = []) {
     .catch(() => null);
 }
 
-async function sendTicketLog(guild, title, lines = [], txtContent = null, txtFilename = 'ticket-log.txt') {
+async function sendTicketTranscript(guild, lines = [], txtContent, txtFilename) {
   const config = store.getGuild(guild.id);
   const channelId = config.tickets.transcriptChannelId || config.channels.ticketLogs;
   if (!channelId) return null;
@@ -32,19 +32,23 @@ async function sendTicketLog(guild, title, lines = [], txtContent = null, txtFil
 
   const embed = new EmbedBuilder()
     .setColor(config.brand.color)
-    .setTitle(title)
-    .setDescription(lines.filter(Boolean).join('\n') || '_No details_')
+    .setTitle('Ticket Transcript')
+    .setDescription(
+      [
+        lines.filter(Boolean).join('\n'),
+        '',
+        `📎 Full conversation attached: \`${txtFilename}\``,
+      ].join('\n')
+    )
     .setTimestamp()
     .setFooter({ text: config.brand.footer });
 
-  const payload = { embeds: [embed] };
-  if (txtContent != null) {
-    payload.files = [
-      new AttachmentBuilder(Buffer.from(txtContent, 'utf8'), { name: txtFilename }),
-    ];
-  }
-
-  return channel.send(payload).catch(() => null);
+  return channel
+    .send({
+      embeds: [embed],
+      files: [new AttachmentBuilder(Buffer.from(txtContent, 'utf8'), { name: txtFilename })],
+    })
+    .catch(() => null);
 }
 
-module.exports = { sendLog, sendTicketLog };
+module.exports = { sendLog, sendTicketTranscript };
