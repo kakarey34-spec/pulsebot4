@@ -14,6 +14,9 @@ module.exports = {
     mod: '1517887427300036628',
     seller: '1517887595638558830',
   },
+  autoRole: {
+    roleId: null,
+  },
   channels: {
     review: '1517500145149935636',
     suggestions: '1517695780490707014',

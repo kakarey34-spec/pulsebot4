@@ -7,6 +7,7 @@ const { sendLog } = require('../utils/logs');
 const ENABLED_COMMANDS = new Set([
   'admin',
   'antilink',
+  'autorole',
   'backup',
   'ban',
   'clear',
