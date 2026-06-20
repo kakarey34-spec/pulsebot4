@@ -17,6 +17,7 @@ const ENABLED_COMMANDS = new Set([
   'product',
   'promo',
   'review',
+  'rules',
   'suggestion',
   'ticket',
 ]);
