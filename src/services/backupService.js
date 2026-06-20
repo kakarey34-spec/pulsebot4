@@ -1,22 +1,47 @@
 const { AttachmentBuilder } = require('discord.js');
 const store = require('../config/store');
-const v2 = require('../utils/v2');
 
 const BACKUP_FILENAME = 'pulsebot-backup.txt';
 const LEGACY_BACKUP_FILENAME = 'pulsebot-backup.json';
 const INTERVAL_MS = 10 * 60 * 1000;
 let timer = null;
 
+function buildBackupBody(snapshot) {
+  const exported = new Date(snapshot.exportedAt).toISOString();
+  const json = JSON.stringify(snapshot, null, 2);
+  return [
+    '=== PULSE STUDIOS BACKUP ===',
+    `Exported: ${exported}`,
+    '',
+    'Copy everything below this line to restore data:',
+    '--- BACKUP DATA START ---',
+    json,
+    '--- BACKUP DATA END ---',
+  ].join('\n');
+}
+
 function buildBackupAttachment() {
   const snapshot = store.exportSnapshot();
-  return new AttachmentBuilder(Buffer.from(JSON.stringify(snapshot, null, 2), 'utf8'), {
-    name: BACKUP_FILENAME,
-    description: 'Pulsebot data backup',
-  });
+  return {
+    snapshot,
+    attachment: new AttachmentBuilder(Buffer.from(buildBackupBody(snapshot), 'utf8'), {
+      name: BACKUP_FILENAME,
+      description: 'Pulsebot data backup',
+    }),
+  };
 }
 
 function isBackupAttachment(name) {
   return name === BACKUP_FILENAME || name === LEGACY_BACKUP_FILENAME;
+}
+
+function parseBackupText(text) {
+  const start = text.indexOf('--- BACKUP DATA START ---');
+  const end = text.indexOf('--- BACKUP DATA END ---');
+  const jsonText = start !== -1 && end !== -1
+    ? text.slice(start + '--- BACKUP DATA START ---'.length, end).trim()
+    : text.trim();
+  return JSON.parse(jsonText);
 }
 
 async function sendBackup(guild) {
@@ -27,25 +52,9 @@ async function sendBackup(guild) {
   const channel = await guild.channels.fetch(channelId).catch(() => null);
   if (!channel?.isTextBased()) return null;
 
-  const attachment = buildBackupAttachment();
-  const snapshot = store.exportSnapshot();
+  const { snapshot, attachment } = buildBackupAttachment();
   return channel.send({
-    ...v2.message(
-      v2.container(
-        [
-          v2.text('## Data Backup'),
-          v2.text(
-            [
-              `**Pulse Studios** automatic backup`,
-              `Exported: <t:${Math.floor(snapshot.exportedAt / 1000)}:F>`,
-              `File: \`${BACKUP_FILENAME}\``,
-            ].join('\n')
-          ),
-          v2.text(`-# ${config.brand.footer}`),
-        ],
-        config.brand.color
-      )
-    ),
+    content: `**Pulse Studios Backup** — <t:${Math.floor(snapshot.exportedAt / 1000)}:F>\nDownload \`${BACKUP_FILENAME}\` below and open it to copy the backup data.`,
     files: [attachment],
   });
 }
@@ -78,7 +87,7 @@ async function restoreFromChannel(client) {
   try {
     const response = await fetch(attachment.url);
     const text = await response.text();
-    const snapshot = JSON.parse(text);
+    const snapshot = parseBackupText(text);
     const restored = store.importSnapshot(snapshot);
     if (restored) console.log(`Restored data from backup in #${channel.name} (${backupMessage.id})`);
     return restored;
