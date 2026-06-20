@@ -1,0 +1,20 @@
+{
+  "name": "pulsebot4",
+  "version": "1.0.0",
+  "description": "Pulse Studio Discord bot with Components v2 tickets, JSON storage, products, promos, reviews, giveaways, and protection",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["discord", "bot", "tickets", "payments", "components-v2"],
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.7"
+  }
+}
