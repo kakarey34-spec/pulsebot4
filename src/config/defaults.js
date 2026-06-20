@@ -52,6 +52,7 @@ module.exports = {
   antiLink: {
     enabled: true,
     ignoredRoleIds: ['1517510292526075925', '1517887427300036628', '1517887595638558830'],
+    authorizedUserIds: [],
     allowedDomains: [],
   },
   antiNuke: {

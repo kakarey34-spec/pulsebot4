@@ -7,6 +7,10 @@ function hasIgnoredRole(message, config) {
   return (config.antiLink.ignoredRoleIds || []).some((id) => message.member?.roles.cache.has(id));
 }
 
+function isAuthorizedUser(message, config) {
+  return (config.antiLink.authorizedUserIds || []).includes(message.author.id);
+}
+
 function isAllowedDomain(content, config) {
   const allowed = config.antiLink.allowedDomains || [];
   if (!allowed.length) return false;
@@ -28,6 +32,7 @@ module.exports = {
       config.antiLink.enabled &&
       LINK_RE.test(message.content || '') &&
       !hasIgnoredRole(message, config) &&
+      !isAuthorizedUser(message, config) &&
       !isAllowedDomain(message.content, config)
     ) {
       await message.delete().catch(() => null);
