@@ -32,8 +32,22 @@ function reviewFooterDate() {
   });
 }
 
-function reviewPanelPayload(bannerUrl = null) {
-  const embed = new EmbedBuilder();
+async function reviewPanelPayload(guild, bannerUrl = null) {
+  const config = store.getGuild(guild.id);
+  const star = await resolveEmojiString(guild, 'star', '⭐');
+  const embed = new EmbedBuilder()
+    .setColor(config.brand.color)
+    .setTitle(`${config.brand.name} Reviews`)
+    .setDescription(
+      [
+        'Share your experience with Pulse Studio.',
+        '',
+        `Press **Leave a Review** to rate us from 1 to 5 ${star} and tell others how it went.`,
+        '',
+        '_Only verified buyers can submit a review._',
+      ].join('\n')
+    );
+
   if (bannerUrl) embed.setImage(bannerUrl);
 
   const row = new ActionRowBuilder().addComponents(
@@ -51,7 +65,7 @@ async function postPanel(channel) {
   const hasBanner = fs.existsSync(BANNER_PATH);
   const bannerUrl = hasBanner ? `attachment://${BANNER_NAME}` : null;
   const sent = await channel.send({
-    ...reviewPanelPayload(bannerUrl),
+    ...(await reviewPanelPayload(channel.guild, bannerUrl)),
     files: hasBanner ? [{ attachment: BANNER_PATH, name: BANNER_NAME }] : [],
   });
   const uploadedBannerUrl = sent.embeds[0]?.image?.url || null;
@@ -59,7 +73,7 @@ async function postPanel(channel) {
     reviews: { panelChannelId: channel.id, panelMessageId: sent.id, bannerUrl: uploadedBannerUrl },
   });
   if (uploadedBannerUrl) {
-    await sent.edit(reviewPanelPayload(uploadedBannerUrl)).catch(() => null);
+    await sent.edit(await reviewPanelPayload(channel.guild, uploadedBannerUrl)).catch(() => null);
   }
   return sent;
 }

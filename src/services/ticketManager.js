@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const store = require('../config/store');
 const v2 = require('../utils/v2');
-const { emojiPayload, resolveEmojiString } = require('../constants/emojis');
+const { emojiPayload } = require('../constants/emojis');
 const { sendLog, sendTicketTranscript } = require('../utils/logs');
 
 const TYPES = {
@@ -34,19 +34,18 @@ const LOGO_NAME = 'pulse-studios-logo.png';
 async function ticketPanelPayload(guildId, logoUrl = null, guild = null) {
   const config = store.getGuild(guildId);
   const counts = store.ticketCounts(guildId);
-  const counterLines = await Promise.all(
-    Object.entries(TYPES).map(async ([key, type]) => {
-      const count = counts[key] || 0;
-      const dot = count > 0
-        ? await resolveEmojiString(guild, 'greenDot', '🟢')
-        : await resolveEmojiString(guild, 'redDot', '🔴');
-      return `${dot} ${type.label.replace(' Ticket', '')}: **${count}**`;
-    })
-  );
-  const totalDot = counts.total > 0
-    ? await resolveEmojiString(guild, 'greenDot', '🟢')
-    : await resolveEmojiString(guild, 'redDot', '🔴');
   const resolvedLogo = logoUrl || config.brand.logoUrl;
+  const statusButtons = Object.entries(TYPES).map(([key, type]) => {
+    const count = counts[key] || 0;
+    return v2.button(
+      `ticket_status:${key}`,
+      `${type.label.replace(' Ticket', '')}: ${count}`,
+      2,
+      count > 0 ? emojiPayload('greenDot') : emojiPayload('redDot'),
+      true
+    );
+  });
+  const totalDot = counts.total > 0 ? emojiPayload('greenDot') : emojiPayload('redDot');
   const ticketButtons = Object.entries(TYPES).map(([key, type], index) =>
     v2.button(`${TICKET_OPEN_PREFIX}${key}`, type.panelButton, index === 0 ? 1 : 2, type.emoji)
   );
@@ -59,9 +58,11 @@ async function ticketPanelPayload(guildId, logoUrl = null, guild = null) {
           'Open the ticket type that matches what you need.',
           '',
           '**Live Active Counters**',
-          ...counterLines,
-          `${totalDot} Total Active: **${counts.total}**`,
         ].join('\n')
+      ),
+      v2.row(...statusButtons),
+      v2.row(
+        v2.button('ticket_status:total', `Total Active: ${counts.total}`, 2, totalDot, true)
       ),
       v2.separator(),
       v2.row(...ticketButtons),
