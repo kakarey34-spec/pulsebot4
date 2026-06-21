@@ -19,7 +19,7 @@ module.exports = {
     roleId: null,
   },
   channels: {
-    review: '1517499934944002233',
+    reviewPanel: '1517499934944002233',
     reviewPost: '1517500145149935636',
     suggestions: '1517695780490707014',
     memberLogs: '1517512986409959425',

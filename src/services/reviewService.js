@@ -128,8 +128,8 @@ function openModal() {
 
 async function handleOpen(interaction) {
   const config = store.getGuild(interaction.guild.id);
-  if (interaction.channelId !== config.channels.review) {
-    return interaction.reply({ content: `Use the review button in <#${config.channels.review}>.`, ephemeral: true });
+  if (interaction.channelId !== config.channels.reviewPanel) {
+    return interaction.reply({ content: `Use the review button in <#${config.channels.reviewPanel}>.`, ephemeral: true });
   }
   if (!hasBuyerRole(interaction.member, config)) {
     return interaction.reply({
@@ -173,7 +173,7 @@ async function handleSubmit(interaction) {
       text: `Review submitted by ${interaction.user.username} • ${reviewFooterDate()}`,
     });
 
-  const postChannelId = config.channels.reviewPost || config.channels.review;
+  const postChannelId = config.channels.reviewPost;
   const reviewPostChannel = await interaction.guild.channels.fetch(postChannelId).catch(() => null);
   if (!reviewPostChannel?.isTextBased()) {
     return interaction.reply({ content: 'Review post channel is not configured correctly.', ephemeral: true });

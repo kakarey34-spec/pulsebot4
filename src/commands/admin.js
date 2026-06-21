@@ -26,7 +26,8 @@ module.exports = {
               { name: 'commands', value: 'commandLogs' },
               { name: 'security', value: 'securityLogs' },
               { name: 'server', value: 'serverLogs' },
-              { name: 'review', value: 'review' }
+              { name: 'review-panel', value: 'reviewPanel' },
+              { name: 'review-post', value: 'reviewPost' },
             )
         )
         .addChannelOption((opt) => opt.setName('channel').setDescription('Channel').setRequired(true).addChannelTypes(ChannelType.GuildText))

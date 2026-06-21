@@ -66,6 +66,23 @@ class JsonStore {
     this.giveaways = readJson(FILES.giveaways, {});
     this.counters = readJson(FILES.counters, {});
     this.security = readJson(FILES.security, {});
+    let configChanged = false;
+    for (const guildId of Object.keys(this.config)) {
+      if (!this.config[guildId].channels) this.config[guildId].channels = {};
+      if (this.config[guildId].channels.reviewPanel !== defaults.channels.reviewPanel) {
+        this.config[guildId].channels.reviewPanel = defaults.channels.reviewPanel;
+        configChanged = true;
+      }
+      if (this.config[guildId].channels.reviewPost !== defaults.channels.reviewPost) {
+        this.config[guildId].channels.reviewPost = defaults.channels.reviewPost;
+        configChanged = true;
+      }
+      if (this.config[guildId].channels.review) {
+        delete this.config[guildId].channels.review;
+        configChanged = true;
+      }
+    }
+    if (configChanged) this.saveConfig();
     console.log('Storage: JSON files in data/ (Render persistent disk recommended)');
   }
 

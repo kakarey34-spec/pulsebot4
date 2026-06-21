@@ -22,15 +22,20 @@ module.exports = {
   permissionLabel: 'mod',
   async execute(interaction) {
     const config = store.getGuild(interaction.guild.id);
-    const channel = interaction.options.getChannel('channel')
-      || await interaction.guild.channels.fetch(config.channels.review).catch(() => null)
-      || interaction.channel;
+    const panelChannel = interaction.options.getChannel('channel')
+      || await interaction.guild.channels.fetch(config.channels.reviewPanel).catch(() => null);
 
-    if (!channel?.isTextBased()) {
-      return interaction.reply({ content: 'Could not find a valid review channel.', ephemeral: true });
+    if (!panelChannel?.isTextBased()) {
+      return interaction.reply({
+        content: `Could not find the review panel channel <#${config.channels.reviewPanel}>.`,
+        ephemeral: true,
+      });
     }
 
-    const msg = await reviewService.postPanel(channel);
-    return interaction.reply({ content: `Review panel posted: ${msg.url}`, ephemeral: true });
+    const msg = await reviewService.postPanel(panelChannel);
+    return interaction.reply({
+      content: `Review panel posted in <#${config.channels.reviewPanel}>. Reviews will be sent to <#${config.channels.reviewPost}>.\n${msg.url}`,
+      ephemeral: true,
+    });
   },
 };
