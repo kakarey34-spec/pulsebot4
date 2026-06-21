@@ -18,7 +18,6 @@ const TYPES = {
   support: { label: 'Support Ticket', emoji: '🛠️', panelButton: 'Support Tickets' },
   partner: { label: 'Partner Ticket', emoji: '🤝', panelButton: 'Partner Tickets' },
   build: { label: 'Build Your Project', emoji: '🔨', panelButton: 'Build Your Project' },
-  questions: { label: 'Questions', emoji: '❓', panelButton: 'Questions' },
 };
 
 const TICKET_OPEN_PREFIX = 'ticket_open:';
@@ -55,8 +54,7 @@ function ticketPanelPayload(guildId, logoUrl = null) {
         ].join('\n')
       ),
       v2.separator(),
-      v2.row(...ticketButtons.slice(0, 3)),
-      ticketButtons.length > 3 ? v2.row(...ticketButtons.slice(3)) : null,
+      v2.row(...ticketButtons),
       v2.text('-# Pulse Studio Made By LyxosDime'),
     ], config.brand.color)
   );
@@ -163,8 +161,8 @@ function openModal(type) {
       new ActionRowBuilder().addComponents(
         new TextInputBuilder()
           .setCustomId('details')
-          .setLabel(type === 'questions' ? 'Your question' : 'How can we help?')
-          .setPlaceholder(type === 'questions' ? 'Ask your question here.' : 'Write the important details here.')
+          .setLabel('How can we help?')
+          .setPlaceholder('Write the important details here.')
           .setStyle(TextInputStyle.Paragraph)
           .setMinLength(3)
           .setMaxLength(1000)
@@ -231,10 +229,7 @@ function ticketIntroPayload(guildId, ticket, product = null) {
     lines.push(`**Payment preference**: ${ticket.paymentPreference}`);
   }
 
-  if (ticket.details) {
-    const detailsLabel = ticket.type === 'questions' ? 'Question' : 'Details';
-    lines.push('', `**${detailsLabel}**\n${ticket.details}`);
-  }
+  if (ticket.details) lines.push('', `**Details**\n${ticket.details}`);
 
   return v2.message(
     v2.container([
