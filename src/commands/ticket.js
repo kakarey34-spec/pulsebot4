@@ -35,8 +35,11 @@ module.exports = {
       return interaction.reply({ content: `Ticket category set to **${category.name}**.`, ephemeral: true });
     }
     const counts = store.ticketCounts(interaction.guild.id);
+    const lines = Object.entries(ticketManager.TYPES).map(
+      ([key, type]) => `${type.label.replace(' Ticket', '')}: **${counts[key] || 0}**`
+    );
     return interaction.reply({
-      content: `Purchase: **${counts.purchase}** | Support: **${counts.support}** | Partner: **${counts.partner}** | Total: **${counts.total}**`,
+      content: `${lines.join(' | ')} | Total: **${counts.total}**`,
       ephemeral: true,
     });
   },

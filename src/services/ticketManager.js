@@ -14,9 +14,11 @@ const v2 = require('../utils/v2');
 const { sendLog, sendTicketTranscript } = require('../utils/logs');
 
 const TYPES = {
-  purchase: { label: 'Purchase Ticket', emoji: '🛒' },
-  support: { label: 'Support Ticket', emoji: '🛠️' },
-  partner: { label: 'Partner Ticket', emoji: '🤝' },
+  purchase: { label: 'Purchase Ticket', emoji: '🛒', panelButton: 'Purchase Tickets' },
+  support: { label: 'Support Ticket', emoji: '🛠️', panelButton: 'Support Tickets' },
+  partner: { label: 'Partner Ticket', emoji: '🤝', panelButton: 'Partner Tickets' },
+  build: { label: 'Build Your Project', emoji: '🔨', panelButton: 'Build Your Project' },
+  questions: { label: 'Questions', emoji: '❓', panelButton: 'Questions' },
 };
 
 const TICKET_OPEN_PREFIX = 'ticket_open:';
@@ -32,7 +34,13 @@ const LOGO_NAME = 'pulse-studios-logo.png';
 function ticketPanelPayload(guildId, logoUrl = null) {
   const config = store.getGuild(guildId);
   const counts = store.ticketCounts(guildId);
+  const counterLines = Object.entries(TYPES).map(
+    ([key, type]) => `${type.label.replace(' Ticket', '')}: **${counts[key] || 0}**`
+  );
   const resolvedLogo = logoUrl || config.brand.logoUrl;
+  const ticketButtons = Object.entries(TYPES).map(([key, type], index) =>
+    v2.button(`${TICKET_OPEN_PREFIX}${key}`, type.panelButton, index === 0 ? 1 : 2, type.emoji)
+  );
   return v2.message(
     v2.container([
       resolvedLogo ? v2.media(resolvedLogo, 'Pulse Studio logo') : null,
@@ -41,19 +49,14 @@ function ticketPanelPayload(guildId, logoUrl = null) {
         [
           'Open the ticket type that matches what you need.',
           '',
-          `**Live Active Counters**`,
-          `Purchase: **${counts.purchase}**`,
-          `Support: **${counts.support}**`,
-          `Partner: **${counts.partner}**`,
+          '**Live Active Counters**',
+          ...counterLines,
           `Total Active: **${counts.total}**`,
         ].join('\n')
       ),
       v2.separator(),
-      v2.row(
-        v2.button(`${TICKET_OPEN_PREFIX}purchase`, 'Purchase Tickets', 1, '🛒'),
-        v2.button(`${TICKET_OPEN_PREFIX}support`, 'Support Tickets', 2, '🛠️'),
-        v2.button(`${TICKET_OPEN_PREFIX}partner`, 'Partner Tickets', 2, '🤝')
-      ),
+      v2.row(...ticketButtons.slice(0, 3)),
+      ticketButtons.length > 3 ? v2.row(...ticketButtons.slice(3)) : null,
       v2.text('-# Pulse Studio Made By LyxosDime'),
     ], config.brand.color)
   );
@@ -87,6 +90,20 @@ async function postPanel(channel) {
   return sent;
 }
 
+function normalizePaymentPreference(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (['one-time payment', 'one-time', 'one time', 'onetime', 'one time payment'].includes(raw)) {
+    return 'One-time payment';
+  }
+  if (['revenue share', 'revenue'].includes(raw)) {
+    return 'Revenue share';
+  }
+  if (['both', 'one-time and revenue share', 'both options'].includes(raw)) {
+    return 'Both';
+  }
+  return null;
+}
+
 function openModal(type) {
   const label = TYPES[type]?.label || 'Ticket';
   const modal = new ModalBuilder().setCustomId(`${TICKET_OPEN_PREFIX}${type}`).setTitle(label);
@@ -106,18 +123,68 @@ function openModal(type) {
     );
   }
 
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(
-      new TextInputBuilder()
-        .setCustomId('details')
-        .setLabel(type === 'purchase' ? 'Extra notes' : 'How can we help?')
-        .setPlaceholder('Write the important details here.')
-        .setStyle(TextInputStyle.Paragraph)
-        .setMinLength(3)
-        .setMaxLength(1000)
-        .setRequired(type !== 'purchase')
-    )
-  );
+  if (type === 'build') {
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('project_name')
+          .setLabel('Project name')
+          .setPlaceholder('Example: My FiveM Server')
+          .setStyle(TextInputStyle.Short)
+          .setMinLength(2)
+          .setMaxLength(100)
+          .setRequired(true)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('discord_invite')
+          .setLabel('Discord invite link (optional)')
+          .setPlaceholder('https://discord.gg/example')
+          .setStyle(TextInputStyle.Short)
+          .setMaxLength(200)
+          .setRequired(false)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('payment_preference')
+          .setLabel('Payment preference')
+          .setPlaceholder('One-time payment, Revenue share, or Both')
+          .setStyle(TextInputStyle.Short)
+          .setMinLength(3)
+          .setMaxLength(40)
+          .setRequired(true)
+      )
+    );
+    return modal;
+  }
+
+  if (type !== 'purchase') {
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('details')
+          .setLabel(type === 'questions' ? 'Your question' : 'How can we help?')
+          .setPlaceholder(type === 'questions' ? 'Ask your question here.' : 'Write the important details here.')
+          .setStyle(TextInputStyle.Paragraph)
+          .setMinLength(3)
+          .setMaxLength(1000)
+          .setRequired(true)
+      )
+    );
+  } else {
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('details')
+          .setLabel('Extra notes')
+          .setPlaceholder('Write the important details here.')
+          .setStyle(TextInputStyle.Paragraph)
+          .setMinLength(3)
+          .setMaxLength(1000)
+          .setRequired(false)
+      )
+    );
+  }
   return modal;
 }
 
@@ -158,7 +225,16 @@ function ticketIntroPayload(guildId, ticket, product = null) {
     if (product.description) lines.push('', product.description);
   }
 
-  if (ticket.details) lines.push('', `**Details**\n${ticket.details}`);
+  if (ticket.type === 'build') {
+    lines.push('', `**Project**: ${ticket.projectName}`);
+    lines.push(`**Discord invite**: ${ticket.discordInvite || '_Not provided_'}`);
+    lines.push(`**Payment preference**: ${ticket.paymentPreference}`);
+  }
+
+  if (ticket.details) {
+    const detailsLabel = ticket.type === 'questions' ? 'Question' : 'Details';
+    lines.push('', `**${detailsLabel}**\n${ticket.details}`);
+  }
 
   return v2.message(
     v2.container([
@@ -255,7 +331,24 @@ async function createTicketFromModal(interaction) {
       return { error: `I could not find a product with ID \`${productId}\`. Check the shop listing and try again.` };
     }
 
-    const details = modalTextValue(interaction.fields, 'details');
+    const details = type === 'build' ? null : modalTextValue(interaction.fields, 'details');
+    let buildFields = null;
+    if (type === 'build') {
+      const projectName = modalTextValue(interaction.fields, 'project_name');
+      const discordInvite = modalTextValue(interaction.fields, 'discord_invite') || null;
+      const paymentPreference = normalizePaymentPreference(modalTextValue(interaction.fields, 'payment_preference'));
+      if (!paymentPreference) {
+        return {
+          error: 'Invalid payment preference. Choose **One-time payment**, **Revenue share**, or **Both**.',
+        };
+      }
+
+      buildFields = { projectName, discordInvite, paymentPreference };
+    }
+
+    if (type !== 'purchase' && type !== 'build' && !details) {
+      return { error: 'Please fill in all required fields.' };
+    }
     const number = store.nextTicketNumber(interaction.guild.id, type);
     const ticketId = `${type.toUpperCase()}-${String(number).padStart(4, '0')}`;
     const parent = await resolveTicketParent(interaction.guild, config.tickets.categoryId);
@@ -281,6 +374,7 @@ async function createTicketFromModal(interaction) {
       ticketId,
       productId,
       details,
+      ...(buildFields || {}),
       status: 'open',
       discountPercent: 0,
       promoCode: null,
@@ -302,6 +396,8 @@ async function createTicketFromModal(interaction) {
       `Ticket: <#${channel.id}>`,
       `User: <@${interaction.user.id}>`,
       product ? `Product: **${product.name}** (\`${product.id}\`)` : null,
+      type === 'build' && buildFields ? `Project: **${buildFields.projectName}**` : null,
+      type === 'build' && buildFields ? `Payment preference: **${buildFields.paymentPreference}**` : null,
     ]);
     return { channel };
   } finally {

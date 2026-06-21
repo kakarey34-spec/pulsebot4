@@ -121,7 +121,7 @@ class JsonStore {
   }
 
   ticketCounts(guildId) {
-    const counts = { purchase: 0, support: 0, partner: 0, total: 0 };
+    const counts = { total: 0 };
     for (const ticket of this.listTickets(guildId)) {
       if (ticket.status === 'closed') continue;
       counts[ticket.type] = (counts[ticket.type] || 0) + 1;
