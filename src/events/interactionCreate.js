@@ -1,6 +1,7 @@
 const ticketManager = require('../services/ticketManager');
 const giveawayService = require('../services/giveawayService');
 const reviewService = require('../services/reviewService');
+const suggestionService = require('../services/suggestionService');
 
 module.exports = {
   name: 'interactionCreate',
@@ -46,6 +47,10 @@ module.exports = {
 
         if (giveawayService.isEnterButton(interaction.customId)) {
           return giveawayService.handleEnter(interaction);
+        }
+
+        if (suggestionService.isVoteButton(interaction.customId)) {
+          return suggestionService.handleVote(interaction);
         }
       }
 

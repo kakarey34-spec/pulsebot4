@@ -5,6 +5,9 @@ const EMOJIS = {
   paypal: { id: '1453762809207717941', animated: false },
   paysafe: { id: '1453763515671253054', animated: false },
   confetti: { id: '1480600503543926965', animated: true },
+  suggestionIcon: { id: '1453763982962720943', animated: true },
+  voteYes: { id: '1462509162876375163', animated: true },
+  voteNo: { id: '1462509958271602739', animated: true },
 };
 
 async function ensureGuildEmojis(guild) {

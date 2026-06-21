@@ -1,5 +1,6 @@
 const store = require('../config/store');
 const { sendLog } = require('../utils/logs');
+const suggestionService = require('../services/suggestionService');
 
 const LINK_RE = /(https?:\/\/|discord\.gg\/|www\.)/i;
 
@@ -24,8 +25,8 @@ module.exports = {
     const config = store.getGuild(message.guild.id);
 
     if (message.channelId === config.channels.suggestions) {
-      await message.react('✅').catch(() => null);
-      await message.react('❌').catch(() => null);
+      await suggestionService.createFromMessage(message);
+      return;
     }
 
     if (

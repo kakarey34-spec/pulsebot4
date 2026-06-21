@@ -18,6 +18,8 @@ module.exports = {
         .addIntegerOption((opt) => opt.setName('winners').setDescription('Winner count').setMinValue(1).setMaxValue(giveawayService.MAX_WINNERS))
         .addChannelOption((opt) => opt.setName('channel').setDescription('Giveaway channel').addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement))
         .addStringOption((opt) => opt.setName('description').setDescription('Extra details').setMaxLength(500))
+        .addStringOption((opt) => opt.setName('media_url').setDescription('Banner image or video URL'))
+        .addAttachmentOption((opt) => opt.setName('media').setDescription('Upload a banner image or video'))
     )
     .addSubcommand((sub) =>
       sub.setName('end').setDescription('End a giveaway').addStringOption((opt) => opt.setName('message_id').setDescription('Message ID').setRequired(true))
@@ -42,6 +44,8 @@ module.exports = {
         title: interaction.options.getString('title'),
         prize: interaction.options.getString('prize'),
         description: interaction.options.getString('description'),
+        mediaUrl: interaction.options.getString('media_url'),
+        attachment: interaction.options.getAttachment('media'),
         durationMs,
         winnerCount: interaction.options.getInteger('winners') || 1,
         channel: interaction.options.getChannel('channel') || interaction.channel,

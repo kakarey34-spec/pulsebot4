@@ -9,6 +9,7 @@ const FILES = {
   products: path.join(DATA_DIR, 'products.json'),
   promos: path.join(DATA_DIR, 'promocodes.json'),
   giveaways: path.join(DATA_DIR, 'giveaways.json'),
+  suggestions: path.join(DATA_DIR, 'suggestions.json'),
   counters: path.join(DATA_DIR, 'ticket-counters.json'),
   security: path.join(DATA_DIR, 'security-actions.json'),
 };
@@ -64,6 +65,7 @@ class JsonStore {
     this.products = readJson(FILES.products, {});
     this.promos = readJson(FILES.promos, {});
     this.giveaways = readJson(FILES.giveaways, {});
+    this.suggestions = readJson(FILES.suggestions, {});
     this.counters = readJson(FILES.counters, {});
     this.security = readJson(FILES.security, {});
     let configChanged = false;
@@ -201,6 +203,20 @@ class JsonStore {
   deleteGiveaway(messageId) {
     delete this.giveaways[messageId];
     writeJson(FILES.giveaways, this.giveaways);
+  }
+
+  setSuggestion(messageId, suggestion) {
+    this.suggestions[messageId] = suggestion;
+    writeJson(FILES.suggestions, this.suggestions);
+  }
+
+  getSuggestion(messageId) {
+    return this.suggestions[messageId] || null;
+  }
+
+  deleteSuggestion(messageId) {
+    delete this.suggestions[messageId];
+    writeJson(FILES.suggestions, this.suggestions);
   }
 
   listActiveGiveaways() {

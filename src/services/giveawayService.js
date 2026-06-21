@@ -1,6 +1,6 @@
 const store = require('../config/store');
 const v2 = require('../utils/v2');
-const { emojiPayload } = require('../constants/emojis');
+const { emojiPayload, resolveEmojiString } = require('../constants/emojis');
 
 const ENTER_PREFIX = 'giveaway_enter:';
 const MAX_WINNERS = 20;
@@ -14,49 +14,94 @@ function payload(guildId, giveaway) {
   const entries = giveaway.entries?.length || 0;
   const ended = giveaway.status === 'ended';
   const winners = giveaway.winnerIds || [];
+  const endsTs = Math.floor(giveaway.endsAt / 1000);
+
   const lines = [
-    `## ${giveaway.title}${ended ? ' (Ended)' : ''}`,
-    `Prize: **${giveaway.prize}**`,
-    `Winners: **${giveaway.winnerCount}**`,
-    `Entries: **${entries}**`,
-    ended
-      ? winners.length
-        ? `Winner(s): ${winners.map((id) => `<@${id}>`).join(', ')}`
-        : 'No valid entries.'
-      : `Ends: <t:${Math.floor(giveaway.endsAt / 1000)}:R>`,
-    giveaway.description ? `\n${giveaway.description}` : '',
+    '# 🎉 GIVEAWAY',
+    '',
+    `## ${giveaway.title}${ended ? ' · Ended' : ''}`,
+    '',
+    '**Prize**',
+    giveaway.prize,
+    '',
+    `**Winners:** ${giveaway.winnerCount}`,
+    `**Entries:** ${entries}`,
   ];
-  const components = [v2.text(lines.filter(Boolean).join('\n')), v2.separator()];
-  if (!ended) {
-    components.push(v2.row(v2.button(`${ENTER_PREFIX}${giveaway.messageId}`, 'Enter Giveaway', 1, emojiPayload('confetti') || '🎉')));
+
+  if (ended) {
+    lines.push(
+      '',
+      winners.length
+        ? `**Winner(s):** ${winners.map((id) => `<@${id}>`).join(', ')}`
+        : '**Winner(s):** No valid entries.'
+    );
   } else {
-    components.push(v2.row(v2.button(`${ENTER_PREFIX}${giveaway.messageId}`, 'Giveaway Ended', 2, emojiPayload('confetti') || '🎉', true)));
+    lines.push('', `**Ends:** <t:${endsTs}:F> (<t:${endsTs}:R>)`);
   }
+
+  if (giveaway.description) {
+    lines.push('', '**Details**', giveaway.description);
+  }
+
+  const components = [];
+  if (giveaway.mediaUrl) components.push(v2.media(giveaway.mediaUrl, giveaway.title));
+  components.push(v2.text(lines.join('\n')), v2.separator());
+
+  if (!ended) {
+    components.push(
+      v2.row(
+        v2.button(`${ENTER_PREFIX}${giveaway.messageId}`, 'Enter Giveaway', 1, emojiPayload('confetti') || '🎉')
+      ),
+      v2.text('-# Pulse Studio Giveaway · Good luck!')
+    );
+  } else {
+    components.push(
+      v2.row(
+        v2.button(`${ENTER_PREFIX}${giveaway.messageId}`, 'Giveaway Ended', 2, emojiPayload('confetti') || '🎉', true)
+      )
+    );
+  }
+
   return v2.message(v2.container(components, config.brand.color), {
     allowedMentions: ended ? { users: winners } : { parse: [] },
   });
 }
 
+function resolveMedia(attachment, mediaUrl) {
+  if (attachment) {
+    const type = attachment.contentType || '';
+    const name = attachment.name || '';
+    const isVideo = type.startsWith('video/') || /\.(mp4|mov|webm|mkv)$/i.test(name);
+    const isImage = type.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(name);
+    if (isImage || isVideo) return attachment.url;
+  }
+  if (mediaUrl) return mediaUrl;
+  return null;
+}
+
 async function startGiveaway(interaction, options) {
   const endsAt = Date.now() + options.durationMs;
-  const temp = {
+  const media = resolveMedia(options.attachment, options.mediaUrl);
+  const giveaway = {
     guildId: interaction.guild.id,
     channelId: options.channel.id,
     messageId: 'pending',
     title: options.title,
     prize: options.prize,
     description: options.description,
+    mediaUrl: media,
     winnerCount: options.winnerCount,
     endsAt,
     entries: [],
     status: 'active',
     createdBy: interaction.user.id,
   };
-  const message = await options.channel.send(payload(interaction.guild.id, temp));
-  temp.messageId = message.id;
-  store.setGiveaway(message.id, temp);
-  await message.edit(payload(interaction.guild.id, temp)).catch(() => null);
-  return { message, giveaway: temp };
+
+  const message = await options.channel.send(payload(interaction.guild.id, giveaway));
+  giveaway.messageId = message.id;
+  store.setGiveaway(message.id, giveaway);
+  await message.edit(payload(interaction.guild.id, giveaway)).catch(() => null);
+  return { message, giveaway };
 }
 
 async function handleEnter(interaction) {
@@ -97,11 +142,12 @@ async function endGiveaway(client, messageId, forced = false) {
   store.setGiveaway(messageId, giveaway);
   const message = await channel.messages.fetch(messageId).catch(() => null);
   if (message) await message.edit(payload(giveaway.guildId, giveaway)).catch(() => null);
+  const confetti = await resolveEmojiString(channel.guild, 'confetti', '🎉');
   await channel.send({
     content: winners.length
       ? winners.length === 1
-        ? `🎉 Congratulations <@${winners[0]}>, you won **${giveaway.prize}**!`
-        : `🎉 Giveaway ended${forced ? ' early' : ''}! Winners: ${winners.map((id) => `<@${id}>`).join(', ')} — you won **${giveaway.prize}**!`
+        ? `${confetti} Congratulations <@${winners[0]}>, you won **${giveaway.prize}**!`
+        : `${confetti} Giveaway ended${forced ? ' early' : ''}! Winners: ${winners.map((id) => `<@${id}>`).join(', ')} — you won **${giveaway.prize}**!`
       : `Giveaway ended${forced ? ' early' : ''}. No valid entries.`,
     allowedMentions: { users: winners },
   });
