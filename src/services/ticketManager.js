@@ -315,12 +315,7 @@ function finalPrice(ticket, product) {
   return Math.max(0, base * (1 - discount / 100));
 }
 
-function closestPaysafeTier(amount, tiers) {
-  for (const tier of tiers) {
-    if (tier >= amount) return tier;
-  }
-  return tiers[tiers.length - 1];
-}
+const { suggestPaysafeCards, formatPaysafeSuggestion } = require('../utils/paysafe');
 
 async function sendPayment(interaction, method, channelId) {
   if (interaction.channelId !== channelId) {
@@ -341,8 +336,8 @@ async function sendPayment(interaction, method, channelId) {
   if (method === 'paypal') {
     lines.push('', config.payments.paypal.instructions.replaceAll('{email}', config.payments.paypal.email).replaceAll('{amount}', amount.toFixed(2)));
   } else {
-    const tier = closestPaysafeTier(amount, config.payments.paysafe.tiers);
-    lines.push('', `Closest PaySafe card tier: **€${tier}**`, config.payments.paysafe.instructions);
+    const suggestion = suggestPaysafeCards(amount, config.payments.paysafe.tiers);
+    lines.push('', `Suggested PaySafe cards: ${formatPaysafeSuggestion(suggestion)}`, config.payments.paysafe.instructions);
   }
   lines.push('', 'After paying, upload proof in this ticket. Staff will verify it.');
 

@@ -47,7 +47,7 @@ module.exports = {
     },
     paysafe: {
       enabled: true,
-      tiers: [5, 10, 25, 50, 100],
+      tiers: [5, 10, 20, 25, 50, 100],
       instructions:
         'Buy the closest PaySafe card tier for the amount shown, then send the code/proof in this ticket.',
     },
