@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const store = require('../config/store');
 const v2 = require('../utils/v2');
+const { emojiPayload, emojiString } = require('../constants/emojis');
 const { sendLog, sendTicketTranscript } = require('../utils/logs');
 
 const TYPES = {
@@ -30,12 +31,14 @@ const locks = new Set();
 const LOGO_PATH = path.join(__dirname, '../../assets/pulse-studios-logo.png');
 const LOGO_NAME = 'pulse-studios-logo.png';
 
-function ticketPanelPayload(guildId, logoUrl = null) {
+function ticketPanelPayload(guildId, logoUrl = null, guild = null) {
   const config = store.getGuild(guildId);
   const counts = store.ticketCounts(guildId);
-  const counterLines = Object.entries(TYPES).map(
-    ([key, type]) => `${type.label.replace(' Ticket', '')}: **${counts[key] || 0}**`
-  );
+  const counterLines = Object.entries(TYPES).map(([key, type]) => {
+    const count = counts[key] || 0;
+    const dot = count > 0 ? emojiString(guild, 'greenDot', '🟢') : emojiString(guild, 'redDot', '🔴');
+    return `${dot} ${type.label.replace(' Ticket', '')}: **${count}**`;
+  });
   const resolvedLogo = logoUrl || config.brand.logoUrl;
   const ticketButtons = Object.entries(TYPES).map(([key, type], index) =>
     v2.button(`${TICKET_OPEN_PREFIX}${key}`, type.panelButton, index === 0 ? 1 : 2, type.emoji)
@@ -50,7 +53,7 @@ function ticketPanelPayload(guildId, logoUrl = null) {
           '',
           '**Live Active Counters**',
           ...counterLines,
-          `Total Active: **${counts.total}**`,
+          `${counts.total > 0 ? emojiString(guild, 'greenDot', '🟢') : emojiString(guild, 'redDot', '🔴')} Total Active: **${counts.total}**`,
         ].join('\n')
       ),
       v2.separator(),
@@ -67,14 +70,14 @@ async function refreshPanel(guild) {
   if (!channel?.isTextBased()) return;
   const message = await channel.messages.fetch(config.tickets.panelMessageId).catch(() => null);
   if (!message) return;
-  await message.edit(ticketPanelPayload(guild.id)).catch(() => null);
+  await message.edit(ticketPanelPayload(guild.id, null, guild)).catch(() => null);
 }
 
 async function postPanel(channel) {
   const hasLogo = fs.existsSync(LOGO_PATH);
   const logoUrl = hasLogo ? `attachment://${LOGO_NAME}` : null;
   const sent = await channel.send({
-    ...ticketPanelPayload(channel.guild.id, logoUrl),
+    ...ticketPanelPayload(channel.guild.id, logoUrl, channel.guild),
     files: hasLogo ? [{ attachment: LOGO_PATH, name: LOGO_NAME }] : [],
   });
   const uploadedLogoUrl = sent.attachments.first()?.url || store.getGuild(channel.guild.id).brand.logoUrl || null;
@@ -83,7 +86,7 @@ async function postPanel(channel) {
     tickets: { panelChannelId: channel.id, panelMessageId: sent.id },
   });
   if (uploadedLogoUrl) {
-    await sent.edit(ticketPanelPayload(channel.guild.id, uploadedLogoUrl)).catch(() => null);
+    await sent.edit(ticketPanelPayload(channel.guild.id, uploadedLogoUrl, channel.guild)).catch(() => null);
   }
   return sent;
 }
@@ -197,8 +200,8 @@ function slug(value) {
 function paymentRows(channelId) {
   return [
     v2.row(
-      v2.button(`${PAYMENT_PREFIX}paypal:${channelId}`, 'PayPal', 1, '💳'),
-      v2.button(`${PAYMENT_PREFIX}paysafe:${channelId}`, 'PaySafe', 1, '🎫'),
+      v2.button(`${PAYMENT_PREFIX}paypal:${channelId}`, 'PayPal', 1, emojiPayload('paypal')),
+      v2.button(`${PAYMENT_PREFIX}paysafe:${channelId}`, 'PaySafe', 1, emojiPayload('paysafe')),
       v2.button(`${PROMO_BUTTON_PREFIX}${channelId}`, 'Apply Promo', 2, '🏷️'),
       v2.button(TICKET_CLOSE, 'Close', 4, '🔒')
     ),

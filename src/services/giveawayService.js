@@ -1,5 +1,6 @@
 const store = require('../config/store');
 const v2 = require('../utils/v2');
+const { emojiPayload } = require('../constants/emojis');
 
 const ENTER_PREFIX = 'giveaway_enter:';
 const MAX_WINNERS = 20;
@@ -27,9 +28,9 @@ function payload(guildId, giveaway) {
   ];
   const components = [v2.text(lines.filter(Boolean).join('\n')), v2.separator()];
   if (!ended) {
-    components.push(v2.row(v2.button(`${ENTER_PREFIX}${giveaway.messageId}`, 'Enter Giveaway', 1, '🎉')));
+    components.push(v2.row(v2.button(`${ENTER_PREFIX}${giveaway.messageId}`, 'Enter Giveaway', 1, emojiPayload('confetti') || '🎉')));
   } else {
-    components.push(v2.row(v2.button(`${ENTER_PREFIX}${giveaway.messageId}`, 'Giveaway Ended', 2, '🎉', true)));
+    components.push(v2.row(v2.button(`${ENTER_PREFIX}${giveaway.messageId}`, 'Giveaway Ended', 2, emojiPayload('confetti') || '🎉', true)));
   }
   return v2.message(v2.container(components, config.brand.color), {
     allowedMentions: ended ? { users: winners } : { parse: [] },

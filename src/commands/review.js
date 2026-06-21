@@ -1,53 +1,36 @@
-const { EmbedBuilder, SlashCommandBuilder } = require('discord.js');
+const { ChannelType, SlashCommandBuilder } = require('discord.js');
 const store = require('../config/store');
-
-function reviewFooterDate() {
-  return new Date().toLocaleString('en-US', {
-    month: 'numeric',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
+const reviewService = require('../services/reviewService');
+const { LEVELS } = require('../utils/permissions');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('review')
-    .setDescription('Leave a Pulse Studio review')
-    .addIntegerOption((opt) => opt.setName('stars').setDescription('1 to 5 stars').setRequired(true).setMinValue(1).setMaxValue(5))
-    .addStringOption((opt) => opt.setName('message').setDescription('Your review').setRequired(true).setMaxLength(1000)),
+    .setDescription('Manage Pulse Studio reviews')
+    .addSubcommand((sub) =>
+      sub
+        .setName('panel')
+        .setDescription('Post the review panel embed')
+        .addChannelOption((opt) =>
+          opt
+            .setName('channel')
+            .setDescription('Review channel')
+            .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+        )
+    ),
+  permissionLevel: LEVELS.mod,
+  permissionLabel: 'mod',
   async execute(interaction) {
     const config = store.getGuild(interaction.guild.id);
-    if (interaction.channelId !== config.channels.review) {
-      return interaction.reply({ content: `Please use reviews in <#${config.channels.review}>.`, ephemeral: true });
+    const channel = interaction.options.getChannel('channel')
+      || await interaction.guild.channels.fetch(config.channels.review).catch(() => null)
+      || interaction.channel;
+
+    if (!channel?.isTextBased()) {
+      return interaction.reply({ content: 'Could not find a valid review channel.', ephemeral: true });
     }
 
-    const stars = interaction.options.getInteger('stars');
-    const body = interaction.options.getString('message');
-    const avatarUrl = interaction.user.displayAvatarURL({ extension: 'png', size: 256 });
-
-    const embed = new EmbedBuilder()
-      .setColor(config.brand.color)
-      .setAuthor({
-        name: `${interaction.user.username} left a service rating`,
-        iconURL: avatarUrl,
-      })
-      .setTitle('Service Review')
-      .setDescription(body)
-      .addFields(
-        { name: 'Reviewer', value: `<@${interaction.user.id}>`, inline: true },
-        { name: 'Stars', value: `${'⭐'.repeat(stars)} ▫ (${stars}/5)`, inline: true }
-      )
-      .setThumbnail(avatarUrl)
-      .setFooter({
-        text: `Review submitted by ${interaction.user.username} • ${reviewFooterDate()}`,
-      });
-
-    await interaction.channel.send({
-      embeds: [embed],
-      allowedMentions: { users: [interaction.user.id] },
-    });
-    return interaction.reply({ content: 'Review posted. Thank you!', ephemeral: true });
+    const msg = await reviewService.postPanel(channel);
+    return interaction.reply({ content: `Review panel posted: ${msg.url}`, ephemeral: true });
   },
 };

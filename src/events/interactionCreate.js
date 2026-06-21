@@ -1,5 +1,6 @@
 const ticketManager = require('../services/ticketManager');
 const giveawayService = require('../services/giveawayService');
+const reviewService = require('../services/reviewService');
 
 module.exports = {
   name: 'interactionCreate',
@@ -31,6 +32,10 @@ module.exports = {
           return interaction.editReply({ content: result.error || 'Ticket closing.' });
         }
 
+        if (interaction.customId === reviewService.REVIEW_OPEN) {
+          return reviewService.handleOpen(interaction);
+        }
+
         if (giveawayService.isEnterButton(interaction.customId)) {
           return giveawayService.handleEnter(interaction);
         }
@@ -43,6 +48,10 @@ module.exports = {
           return interaction.editReply({
             content: result.error || `Ticket opened: <#${result.channel.id}>`,
           });
+        }
+
+        if (interaction.customId === reviewService.REVIEW_SUBMIT) {
+          return reviewService.handleSubmit(interaction);
         }
 
         if (interaction.customId.startsWith(ticketManager.PROMO_MODAL_PREFIX)) {

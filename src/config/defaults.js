@@ -13,12 +13,13 @@ module.exports = {
     owner: '1517510292526075925',
     mod: '1517887427300036628',
     seller: '1517887595638558830',
+    buyer: '1517518985732689970',
   },
   autoRole: {
     roleId: null,
   },
   channels: {
-    review: '1517500145149935636',
+    review: '1517499934944002233',
     suggestions: '1517695780490707014',
     memberLogs: '1517512986409959425',
     channelLogs: '1517513252341289151',
@@ -51,6 +52,11 @@ module.exports = {
       instructions:
         'Buy the closest PaySafe card tier for the amount shown, then send the code/proof in this ticket.',
     },
+  },
+  reviews: {
+    panelChannelId: null,
+    panelMessageId: null,
+    bannerUrl: null,
   },
   antiLink: {
     enabled: true,
