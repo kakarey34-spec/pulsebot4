@@ -36,6 +36,14 @@ module.exports = {
           return reviewService.handleOpen(interaction);
         }
 
+        if (reviewService.isReviewRate(interaction.customId)) {
+          return reviewService.handleRate(interaction);
+        }
+
+        if (reviewService.isReviewSend(interaction.customId)) {
+          return reviewService.handleSend(interaction);
+        }
+
         if (giveawayService.isEnterButton(interaction.customId)) {
           return giveawayService.handleEnter(interaction);
         }
@@ -50,7 +58,7 @@ module.exports = {
           });
         }
 
-        if (interaction.customId === reviewService.REVIEW_SUBMIT) {
+        if (reviewService.isReviewSubmit(interaction.customId)) {
           return reviewService.handleSubmit(interaction);
         }
 
