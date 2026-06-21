@@ -10,7 +10,7 @@ const {
 const fs = require('fs');
 const path = require('path');
 const store = require('../config/store');
-const { emojiPayload, emojiString, starsLine } = require('../constants/emojis');
+const { emojiPayload, resolveEmojiString, starsLine } = require('../constants/emojis');
 
 const REVIEW_OPEN = 'review_open';
 const REVIEW_SUBMIT = 'review_submit';
@@ -32,22 +32,8 @@ function reviewFooterDate() {
   });
 }
 
-function reviewPanelPayload(guild, bannerUrl = null) {
-  const config = store.getGuild(guild.id);
-  const star = emojiString(guild, 'star', '⭐');
-  const embed = new EmbedBuilder()
-    .setColor(config.brand.color)
-    .setTitle(`${config.brand.name} Reviews`)
-    .setDescription(
-      [
-        'Share your experience with Pulse Studio.',
-        '',
-        `Press **Leave a Review** to rate us from 1 to 5 ${star} and tell others how it went.`,
-        '',
-        '_Only verified buyers can submit a review._',
-      ].join('\n')
-    );
-
+function reviewPanelPayload(bannerUrl = null) {
+  const embed = new EmbedBuilder();
   if (bannerUrl) embed.setImage(bannerUrl);
 
   const row = new ActionRowBuilder().addComponents(
@@ -65,7 +51,7 @@ async function postPanel(channel) {
   const hasBanner = fs.existsSync(BANNER_PATH);
   const bannerUrl = hasBanner ? `attachment://${BANNER_NAME}` : null;
   const sent = await channel.send({
-    ...reviewPanelPayload(channel.guild, bannerUrl),
+    ...reviewPanelPayload(bannerUrl),
     files: hasBanner ? [{ attachment: BANNER_PATH, name: BANNER_NAME }] : [],
   });
   const uploadedBannerUrl = sent.embeds[0]?.image?.url || null;
@@ -73,7 +59,7 @@ async function postPanel(channel) {
     reviews: { panelChannelId: channel.id, panelMessageId: sent.id, bannerUrl: uploadedBannerUrl },
   });
   if (uploadedBannerUrl) {
-    await sent.edit(reviewPanelPayload(channel.guild, uploadedBannerUrl)).catch(() => null);
+    await sent.edit(reviewPanelPayload(uploadedBannerUrl)).catch(() => null);
   }
   return sent;
 }
@@ -133,7 +119,7 @@ async function handleSubmit(interaction) {
 
   const body = interaction.fields.getTextInputValue('message').trim();
   const avatarUrl = interaction.user.displayAvatarURL({ extension: 'png', size: 256 });
-  const confetti = emojiString(interaction.guild, 'confetti', '🎉');
+  const confetti = await resolveEmojiString(interaction.guild, 'confetti', '🎉');
 
   const embed = new EmbedBuilder()
     .setColor(config.brand.color)
@@ -145,19 +131,20 @@ async function handleSubmit(interaction) {
     .setDescription(body)
     .addFields(
       { name: 'Reviewer', value: `<@${interaction.user.id}>`, inline: true },
-      { name: 'Stars', value: starsLine(interaction.guild, stars), inline: true }
+      { name: 'Stars', value: await starsLine(interaction.guild, stars), inline: true }
     )
     .setThumbnail(avatarUrl)
     .setFooter({
       text: `Review submitted by ${interaction.user.username} • ${reviewFooterDate()}`,
     });
 
-  const reviewChannel = await interaction.guild.channels.fetch(config.channels.review).catch(() => null);
-  if (!reviewChannel?.isTextBased()) {
-    return interaction.reply({ content: 'Review channel is not configured correctly.', ephemeral: true });
+  const postChannelId = config.channels.reviewPost || config.channels.review;
+  const reviewPostChannel = await interaction.guild.channels.fetch(postChannelId).catch(() => null);
+  if (!reviewPostChannel?.isTextBased()) {
+    return interaction.reply({ content: 'Review post channel is not configured correctly.', ephemeral: true });
   }
 
-  await reviewChannel.send({
+  await reviewPostChannel.send({
     embeds: [embed],
     allowedMentions: { users: [interaction.user.id] },
   });

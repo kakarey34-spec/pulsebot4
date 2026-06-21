@@ -7,6 +7,15 @@ const EMOJIS = {
   confetti: { id: '1480600503543926965', animated: true },
 };
 
+async function ensureGuildEmojis(guild) {
+  if (!guild?.emojis) return;
+  const needed = Object.values(EMOJIS).map((e) => e.id);
+  const missing = needed.some((id) => !guild.emojis.cache.has(id));
+  if (missing || guild.emojis.cache.size === 0) {
+    await guild.emojis.fetch().catch(() => null);
+  }
+}
+
 function emojiPayload(key) {
   const def = EMOJIS[key];
   if (!def) return null;
@@ -21,9 +30,21 @@ function emojiString(guild, key, fallback = '') {
   return fallback;
 }
 
-function starsLine(guild, count) {
-  const star = emojiString(guild, 'star', '⭐');
+async function resolveEmojiString(guild, key, fallback = '') {
+  await ensureGuildEmojis(guild);
+  return emojiString(guild, key, fallback);
+}
+
+async function starsLine(guild, count) {
+  const star = await resolveEmojiString(guild, 'star', '⭐');
   return `${star.repeat(count)} (${count}/5)`;
 }
 
-module.exports = { EMOJIS, emojiPayload, emojiString, starsLine };
+module.exports = {
+  EMOJIS,
+  emojiPayload,
+  emojiString,
+  resolveEmojiString,
+  ensureGuildEmojis,
+  starsLine,
+};

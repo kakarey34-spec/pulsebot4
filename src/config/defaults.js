@@ -20,6 +20,7 @@ module.exports = {
   },
   channels: {
     review: '1517499934944002233',
+    reviewPost: '1517500145149935636',
     suggestions: '1517695780490707014',
     memberLogs: '1517512986409959425',
     channelLogs: '1517513252341289151',

@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const store = require('../config/store');
 const v2 = require('../utils/v2');
-const { emojiPayload, emojiString } = require('../constants/emojis');
+const { emojiPayload, resolveEmojiString } = require('../constants/emojis');
 const { sendLog, sendTicketTranscript } = require('../utils/logs');
 
 const TYPES = {
@@ -31,14 +31,21 @@ const locks = new Set();
 const LOGO_PATH = path.join(__dirname, '../../assets/pulse-studios-logo.png');
 const LOGO_NAME = 'pulse-studios-logo.png';
 
-function ticketPanelPayload(guildId, logoUrl = null, guild = null) {
+async function ticketPanelPayload(guildId, logoUrl = null, guild = null) {
   const config = store.getGuild(guildId);
   const counts = store.ticketCounts(guildId);
-  const counterLines = Object.entries(TYPES).map(([key, type]) => {
-    const count = counts[key] || 0;
-    const dot = count > 0 ? emojiString(guild, 'greenDot', '🟢') : emojiString(guild, 'redDot', '🔴');
-    return `${dot} ${type.label.replace(' Ticket', '')}: **${count}**`;
-  });
+  const counterLines = await Promise.all(
+    Object.entries(TYPES).map(async ([key, type]) => {
+      const count = counts[key] || 0;
+      const dot = count > 0
+        ? await resolveEmojiString(guild, 'greenDot', '🟢')
+        : await resolveEmojiString(guild, 'redDot', '🔴');
+      return `${dot} ${type.label.replace(' Ticket', '')}: **${count}**`;
+    })
+  );
+  const totalDot = counts.total > 0
+    ? await resolveEmojiString(guild, 'greenDot', '🟢')
+    : await resolveEmojiString(guild, 'redDot', '🔴');
   const resolvedLogo = logoUrl || config.brand.logoUrl;
   const ticketButtons = Object.entries(TYPES).map(([key, type], index) =>
     v2.button(`${TICKET_OPEN_PREFIX}${key}`, type.panelButton, index === 0 ? 1 : 2, type.emoji)
@@ -53,7 +60,7 @@ function ticketPanelPayload(guildId, logoUrl = null, guild = null) {
           '',
           '**Live Active Counters**',
           ...counterLines,
-          `${counts.total > 0 ? emojiString(guild, 'greenDot', '🟢') : emojiString(guild, 'redDot', '🔴')} Total Active: **${counts.total}**`,
+          `${totalDot} Total Active: **${counts.total}**`,
         ].join('\n')
       ),
       v2.separator(),
@@ -70,14 +77,14 @@ async function refreshPanel(guild) {
   if (!channel?.isTextBased()) return;
   const message = await channel.messages.fetch(config.tickets.panelMessageId).catch(() => null);
   if (!message) return;
-  await message.edit(ticketPanelPayload(guild.id, null, guild)).catch(() => null);
+  await message.edit(await ticketPanelPayload(guild.id, null, guild)).catch(() => null);
 }
 
 async function postPanel(channel) {
   const hasLogo = fs.existsSync(LOGO_PATH);
   const logoUrl = hasLogo ? `attachment://${LOGO_NAME}` : null;
   const sent = await channel.send({
-    ...ticketPanelPayload(channel.guild.id, logoUrl, channel.guild),
+    ...(await ticketPanelPayload(channel.guild.id, logoUrl, channel.guild)),
     files: hasLogo ? [{ attachment: LOGO_PATH, name: LOGO_NAME }] : [],
   });
   const uploadedLogoUrl = sent.attachments.first()?.url || store.getGuild(channel.guild.id).brand.logoUrl || null;
@@ -86,7 +93,7 @@ async function postPanel(channel) {
     tickets: { panelChannelId: channel.id, panelMessageId: sent.id },
   });
   if (uploadedLogoUrl) {
-    await sent.edit(ticketPanelPayload(channel.guild.id, uploadedLogoUrl, channel.guild)).catch(() => null);
+    await sent.edit(await ticketPanelPayload(channel.guild.id, uploadedLogoUrl, channel.guild)).catch(() => null);
   }
   return sent;
 }
