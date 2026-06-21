@@ -122,20 +122,14 @@ async function postPanel(channel) {
       ...(await reviewPanelPayload(channel.guild, `attachment://${BANNER_NAME}`)),
       files: [{ attachment: BANNER_PATH, name: BANNER_NAME }],
     });
-    const uploadedBannerUrl = sent.embeds[0]?.image?.url || null;
+    const bannerUrl = sent.embeds[0]?.image?.url || sent.attachments.first()?.url || null;
     store.setGuild(channel.guild.id, {
       reviews: {
         panelChannelId: channel.id,
         panelMessageId: sent.id,
-        bannerUrl: uploadedBannerUrl,
+        bannerUrl,
       },
     });
-    if (uploadedBannerUrl) {
-      await sent.edit({
-        ...(await reviewPanelPayload(channel.guild, uploadedBannerUrl)),
-        attachments: [],
-      }).catch(() => null);
-    }
     return sent;
   }
 
